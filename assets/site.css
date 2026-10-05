@@ -1,0 +1,43 @@
+/* Melies — public site (meliesapp.com). Brand: #120C0E background, #D67131 accent. */
+:root {
+  --bg: #120c0e;
+  --panel: #1d1518;
+  --text: #f3ece8;
+  --dim: #bfb2ac;
+  --accent: #d67131;
+  --line: #3a2d31;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #fbf8f6; --panel: #ffffff; --text: #1d1518; --dim: #5b4d48; --accent: #b4561c; --line: #e6dcd6; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+a { color: var(--accent); }
+header, main, footer { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding-top: 22px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+header .brand { font-weight: 800; font-size: 1.35rem; letter-spacing: .02em; color: var(--text); text-decoration: none; margin-right: auto; }
+header .brand span { color: var(--accent); }
+header .brand { display: inline-flex; align-items: center; gap: 10px; }
+header .brand img { width: 36px; height: 36px; border-radius: 9px; display: block; }
+header nav { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .95rem; }
+header nav a { text-decoration: none; }
+header nav a[aria-current="page"] { color: var(--text); font-weight: 700; }
+main { padding-top: 8px; padding-bottom: 32px; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 28px 0 6px; }
+h2 { font-size: 1.25rem; margin: 34px 0 8px; }
+h3 { font-size: 1.05rem; margin: 22px 0 6px; }
+.meta { color: var(--dim); font-size: .95rem; margin: 0 0 20px; }
+.lead { font-size: 1.12rem; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .95rem; display: block; overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border: 1px solid var(--line); }
+th { background: var(--panel); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 16px 0; }
+ul, ol { padding-left: 1.3em; }
+li { margin: 4px 0; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 40px; color: var(--dim); font-size: .9rem; }
+footer a { color: var(--dim); }
+code { font-size: .92em; }
