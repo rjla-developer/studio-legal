@@ -53,6 +53,8 @@ para publicidad y no mostramos anuncios.</p>
 <thead><tr><th>Dato</th><th>Para qué</th><th>Cuánto tiempo</th></tr></thead>
 <tbody>
 <tr><td>Identificador de cuenta y tokens de sesión (si entras con Apple, el identificador que Apple nos da y, si decides compartirlos, tu nombre y correo)</td><td>Mantener tu sesión y separar tus datos</td><td>Hasta que borres tu cuenta</td></tr>
+<tr><td>Si entras con correo y contraseña: tu correo, si ya lo confirmaste y <strong>un resumen irreversible de tu contraseña</strong> (Argon2id; la contraseña misma nunca se guarda ni se puede leer)</td><td>Dejarte entrar con tu correo</td><td>Hasta que borres tu cuenta</td></tr>
+<tr><td>Los enlaces que te mandamos por correo (confirmar tu correo, restablecer tu contraseña): solo un resumen del enlace, nunca el enlace</td><td>Que cada enlace sirva una vez y caduque</td><td>Duran 30 minutos o 24 horas; se borran un día después de caducar</td></tr>
 <tr><td>Datos del proyecto: título, estado, gancho y textos</td><td>Retomar tu trabajo</td><td>Hasta que borres el proyecto</td></tr>
 <tr><td>Conversaciones con el asistente (lo que pediste, lo que contestó y una descripción <em>en texto</em> de la línea de tiempo)</td><td>Contestarte y diagnosticar fallos</td><td>180 días</td></tr>
 <tr><td>Transcripciones de tus en vivos (palabras con sus segundos y números del nivel de sonido; nunca audio)</td><td>Encontrar clips en tus en vivos</td><td>30 días</td></tr>
@@ -147,6 +149,8 @@ necesaria para las funciones que usas:</p>
   personaje ilustrado: una imagen fija y un texto). Nunca reciben tu video completo. Los datos obtenidos de las API de
   YouTube, TikTok o Meta no se mandan a proveedores de IA.</li>
   <li><strong>Apple</strong>: avisos, Iniciar sesión con Apple y el respaldo de reconocimiento de voz descrito arriba.</li>
+  <li><strong>Resend</strong>, que entrega los correos que te mandamos (confirmar tu correo, restablecer tu contraseña,
+  avisarte de un cambio en tu cuenta): solo tu dirección de correo y el texto de ese correo. No mandamos publicidad.</li>
   <li><strong>Cloudflare</strong>, por donde pasa el tráfico hacia nuestro servidor.</li>
   <li>Las autoridades, cuando lo exija la ley.</li>
 </ul>
@@ -169,7 +173,7 @@ escríbenos y los borramos.</p>
 
 <h2>6. Seguridad</h2>
 <p>Las conexiones van por HTTPS. Los tokens se guardan cifrados; los secretos viven fuera del código y de la base de
-datos. Los videos por publicar viven en un volumen temporal con tope y se borran solos; cada borrado queda registrado.
+datos. Las contraseñas se guardan solo como un resumen Argon2id, y los intentos de entrar tienen un límite. Los videos por publicar viven en un volumen temporal con tope y se borran solos; cada borrado queda registrado.
 Ningún sistema es perfecto; si nos enteramos de una filtración que te afecte, te avisaremos.</p>
 
 <h2>7. Transferencias internacionales</h2>

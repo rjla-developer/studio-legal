@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Esta página solo le pasa el enlace a la app. Ningún script de fuera, ninguna llamada al servidor,
+     y el enlace no viaja a otra página (no-referrer). El token va en el fragmento (#), que el navegador
+     nunca manda a GitHub Pages. Ver docs/ENTRAR-CON-CORREO.md. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Abrir en Melies</title>
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="icon" type="image/png" href="../assets/favicon-64.png">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+</head>
+<body>
+<header>
+  <a class="brand" href="../"><img src="../assets/melies-icon-120.png" alt="" width="36" height="36"><b>Meli<span>e</span>s</b></a>
+</header>
+<main>
+<h1 id="titulo">Abriendo Melies…</h1>
+<p id="que" class="lead">Si la app no se abre sola, toca el botón.</p>
+<p><a id="abrir" class="card" href="../" hidden>Abrir en Melies</a></p>
+<div class="card">
+  <p><strong>Ábrelo en el iPhone donde tienes Melies.</strong> Este enlace solo funciona dentro de la app: si lo abriste
+  en una computadora, busca el mismo correo en tu iPhone y tócalo ahí.</p>
+  <p lang="en">Open this link on the iPhone where Melies is installed. It only works inside the app.</p>
+</div>
+<p class="meta">¿No pediste esto? Ignora el correo: sin abrirlo en la app no pasa nada. Dudas:
+<a href="mailto:contacto@meliesapp.com">contacto@meliesapp.com</a></p>
+</main>
+<script src="abrir.js"></script>
+</body>
+</html>
