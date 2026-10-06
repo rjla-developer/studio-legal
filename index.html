@@ -1,70 +1,331 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Melies — edit on your iPhone, publish everywhere</title>
-<meta name="description" content="Melies is an iPhone video editor for creators: edit and render on the phone, then schedule and publish to TikTok, YouTube, Instagram and Facebook.">
-<link rel="stylesheet" href="assets/site.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Melies — tú grabas, tu equipo hace el resto</title>
+<meta name="description" content="Melies es la app de iPhone para creadores de video: graba en el lugar, edita hablando con Miguelón y su equipo, saca clips de tus en vivos y publica en TikTok, YouTube, Instagram y Facebook. Tu video vive en tu teléfono.">
+<meta name="theme-color" content="#120C0E">
+<link rel="canonical" href="https://meliesapp.com/">
+<link rel="alternate" hreflang="es" href="https://meliesapp.com/">
+<link rel="alternate" hreflang="en" href="https://meliesapp.com/en/">
+<link rel="alternate" hreflang="x-default" href="https://meliesapp.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Melies">
+<meta property="og:title" content="Melies — tú grabas, tu equipo hace el resto">
+<meta property="og:description" content="La app de iPhone para creadores: edita hablando, saca clips de tus en vivos y publica en todas tus redes. Muy pronto en App Store.">
+<meta property="og:url" content="https://meliesapp.com/">
+<meta property="og:image" content="https://meliesapp.com/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_MX">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="assets/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="alternate" hreflang="es" href="https://meliesapp.com/es/">
-<link rel="alternate" hreflang="en" href="https://meliesapp.com/">
+<link rel="preload" as="image" type="image/webp" imagesrcset="assets/img/luna-480.webp 480w, assets/img/luna-800.webp 800w" imagesizes="(min-width: 960px) 480px, 78vw">
+<link rel="stylesheet" href="assets/landing.css">
+<script>document.documentElement.classList.add("js");setTimeout(function(){if(!window.__melies)document.documentElement.classList.remove("js")},3000);</script>
+<script src="assets/landing.js" defer></script>
 </head>
 <body>
-<header>
-  <a class="brand" href="./"><img src="assets/melies-icon-120.png" alt="" width="36" height="36"><b>Meli<span>e</span>s</b></a>
-  <nav>
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="terms.html">Terms of Service</a>
-    <a href="data-deletion.html">Data deletion</a>
-    <a href="es/" hreflang="es" lang="es">Español</a>
-  </nav>
+<a class="salto" href="#contenido">Saltar al contenido</a>
+
+<header class="cabecera">
+  <a class="marca" href="./"><img src="assets/img/melies-wordmark-sm.webp" width="83" height="28" alt="Melies, inicio"></a>
+  <span class="etiqueta-pronto">Muy pronto</span>
+  <a class="idioma" href="en/" hreflang="en" lang="en" aria-label="Read in English">EN</a>
+  <div class="carrete" aria-hidden="true"><span></span></div>
 </header>
-<main>
-<h1>Edit on your iPhone. Publish everywhere.</h1>
-<p class="lead">Melies is an iPhone app for video creators. You edit and render your videos <strong>on the phone</strong>,
-and Melies publishes them, now or at the time you choose, to the TikTok, YouTube, Instagram and Facebook accounts
-<strong>you</strong> connect.</p>
-<p>The name is a tribute to Georges Méliès, the filmmaker who wrote, shot, acted in and edited his own films.</p>
 
-<h2>What Melies does</h2>
-<ul>
-  <li><strong>On-device editing.</strong> Import clips from your photo library, cut, reorder, add text, subtitles,
-  music, sound effects, transitions and animations. Vertical 9:16 (TikTok, Reels, Shorts) or horizontal 16:9 (YouTube).</li>
-  <li><strong>On-device rendering.</strong> The final MP4 is produced by your iPhone with Apple's AVFoundation and Core Image
-  and saved to your camera roll.</li>
-  <li><strong>On-device transcription.</strong> Subtitles and edit-by-text use Apple's speech recognition on the iPhone.</li>
-  <li><strong>An editing assistant.</strong> You can ask the built-in assistant, by text or voice, to make edits for you.
-  It receives a text description of your timeline, never your video.</li>
-  <li><strong>Clips from long videos and live streams.</strong> Find the best moments of a long recording and turn them into
-  short clips.</li>
-  <li><strong>Scheduled publishing.</strong> Choose the accounts, write the caption, pick a date and time, review exactly what
-  each network will show, and Melies posts it. You can see the result of each post, with a link, in the app.</li>
-  <li><strong>Live-stream planning (Kick).</strong> Plan a stream, set its title and category on Kick, and prepare the
-  announcements you approve.</li>
-</ul>
+<main id="contenido">
 
-<h2>Your content stays yours</h2>
-<div class="card">
-<p>Videos are edited and rendered on your phone. Our server <strong>never stores your videos</strong>: when you schedule
-a post, the file waits on the server only until it is delivered to the networks you chose, and is deleted as soon as the
-last one confirms, when you cancel, or 48 hours after the scheduled time, whichever comes first.
-Melies only posts to accounts you connect, and only what you approve. You can disconnect any account at any time.</p>
-</div>
-<p>Read the <a href="privacy.html">Privacy Policy</a>, the <a href="terms.html">Terms of Service</a> and
-<a href="data-deletion.html">how to delete your data</a>.</p>
+<!-- Portada -->
+<section class="portada" aria-labelledby="titulo">
+  <p class="sugerir-idioma" id="otro-idioma" lang="en" hidden><a href="en/" hreflang="en">Read this page in English →</a></p>
+  <p class="antetitulo">Una app de iPhone para creadores de video</p>
+  <figure class="luna">
+    <picture>
+      <source type="image/webp" srcset="assets/img/luna-480.webp 480w, assets/img/luna-800.webp 800w" sizes="(min-width: 960px) 480px, 78vw">
+      <img src="assets/melies-icon-1024.png" width="1024" height="1024" fetchpriority="high"
+        alt="El ícono de Melies: la Luna con un teléfono clavado en el ojo, como el cohete de «Viaje a la Luna».">
+    </picture>
+    <span class="impacto" aria-hidden="true"></span>
+  </figure>
+  <h1 id="titulo">
+    <img class="wordmark" src="assets/img/melies-wordmark.webp" width="559" height="180" alt="Melies:">
+    <span class="lema">Tú grabas. <em>Tu equipo</em> hace el resto.</span>
+  </h1>
+  <p class="bajada">Graba en el lugar, edita hablando con Miguelón y su equipo, saca clips de tus en vivos y publica en
+    TikTok, YouTube, Instagram y Facebook. Todo desde tu iPhone, y tu video no se queda en ningún servidor.</p>
+  <div class="acciones">
+    <p class="pronto">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14.5 2.5a9.5 9.5 0 1 0 7 15.9A8 8 0 0 1 14.5 2.5Z"/></svg>
+      <span><small>Muy pronto en</small><b>App Store</b></span>
+    </p>
+    <a class="boton-sec" href="#escena-1">Ver la función ↓</a>
+  </div>
+  <span class="desliza" aria-hidden="true">Desliza</span>
+</section>
 
-<h2>Availability</h2>
-<p>Melies is an iPhone app (iOS 17 or later). It is currently distributed through Apple TestFlight.</p>
+<div class="pelicula" aria-hidden="true"></div>
 
-<h2>Contact</h2>
-<p><a href="mailto:roberto_luengas@hotmail.es">roberto_luengas@hotmail.es</a></p>
+<!-- Escena 1: Méliès -->
+<section class="acto acto-1" id="escena-1" aria-labelledby="t-escena-1">
+  <div class="contenedor">
+    <p class="escena revela">Escena 1 · París, 1902</p>
+    <div class="intertitulo iris">
+      <h2 id="t-escena-1">Había una vez un mago que hacía cine él solo.</h2>
+    </div>
+    <p class="texto revela">Georges Méliès venía del teatro de magia. Se construyó un estudio de cristal a las afueras de
+      París y desde ahí <strong>escribía, dirigía, actuaba, pintaba los decorados y se inventaba los efectos</strong> de
+      cientos de películas. No tenía equipo: era el equipo.</p>
+    <ol class="sombreros escalonado" aria-label="Los trabajos de Méliès">
+      <li>Productor</li>
+      <li>Guionista</li>
+      <li>Director</li>
+      <li>Actor</li>
+      <li>Escenógrafo</li>
+      <li>Mago de los efectos</li>
+    </ol>
+    <p class="remate revela">En 1902 disparó un cohete al ojo de la Luna: <cite>Viaje a la Luna</cite>.
+      Ciento veinticuatro años después, el que hace todo eres tú.</p>
+  </div>
+</section>
+
+<!-- Escena 2: el creador de hoy -->
+<section class="acto" id="escena-2" aria-labelledby="t-escena-2">
+  <div class="contenedor">
+    <p class="escena revela">Escena 2 · Hoy</p>
+    <h2 class="revela" id="t-escena-2">Tú también haces <em>todo</em>.</h2>
+    <p class="texto revela">Grabas en el lugar y en la casa te acuerdas de la toma que faltó. Cortas silencios, pones
+      subtítulos palabra por palabra, buscas el gancho de los primeros segundos, revisas tres horas de en vivo para
+      encontrar un minuto bueno, y publicas en cuatro redes, cada una con sus reglas.</p>
+    <div class="cuenta revela" aria-hidden="true">
+      <p><b>1</b><span>persona</span></p>
+      <p><b>9</b><span>trabajos por cada video</span></p>
+    </div>
+    <ul class="pila escalonado" aria-label="Lo que hace un creador solo">
+      <li>Grabar en el lugar</li>
+      <li>Acordarte de qué grabar</li>
+      <li>Cortar silencios</li>
+      <li>Subtítulos</li>
+      <li>Un gancho que detenga el dedo</li>
+      <li>Animaciones y música</li>
+      <li>Sacar clips de tus en vivos</li>
+      <li>Una versión para cada red</li>
+      <li>Publicar a la hora buena</li>
+    </ul>
+    <p class="giro revela">Méliès tenía un estudio de cristal. Tú tienes un iPhone.
+      <span>Y ahora, también <em>un equipo</em>.</span></p>
+  </div>
+</section>
+
+<div class="pelicula" aria-hidden="true"></div>
+
+<!-- Escena 3: el reparto -->
+<section class="acto" id="reparto" aria-labelledby="t-reparto">
+  <div class="contenedor">
+    <p class="escena revela">Escena 3 · El reparto</p>
+    <h2 class="revela" id="t-reparto">Le hablas a uno. <em>Trabajan cinco.</em></h2>
+    <p class="texto revela">Dentro de Melies vive un equipo de agentes. Tú solo le hablas a Miguelón, con la voz o por
+      escrito, como le hablarías a tu editor. Él reparte el trabajo y cada respuesta dice quién la atendió.</p>
+    <div class="reparto-grid">
+      <ul class="reparto escalonado">
+        <li class="actor jefe">
+          <img src="assets/img/agente-miguelon.webp" width="76" height="76" alt="Ilustración de Miguelón" loading="lazy" decoding="async">
+          <div><h3>Miguelón</h3><p class="papel">El que te escucha</p>
+            <p>Le pides lo que sea y él lo reparte. Si el encargo cruza de un área a otra, lo atiende él mismo.</p></div>
+        </li>
+        <li class="actor">
+          <img src="assets/img/agente-abigail.webp" width="76" height="76" alt="Ilustración de Abigail" loading="lazy" decoding="async">
+          <div><h3>Abigail</h3><p class="papel">Edita y anima</p>
+            <p>Textos, subtítulos, animaciones, flechas, zoom, música y el acabado de tu video.</p></div>
+        </li>
+        <li class="actor">
+          <img src="assets/img/agente-guero.webp" width="76" height="76" alt="Ilustración de El Güero" loading="lazy" decoding="async">
+          <div><h3>El Güero</h3><p class="papel">Corta clips</p>
+            <p>Saca los mejores momentos de tus en vivos y videos largos, y cuida el ritmo y los cortes.</p></div>
+        </li>
+        <li class="actor">
+          <img src="assets/img/agente-memo.webp" width="76" height="76" alt="Ilustración de Memo" loading="lazy" decoding="async">
+          <div><h3>Memo</h3><p class="papel">Publica y programa</p>
+            <p>Tus publicaciones en cada red, tu agenda y tus en vivos programados.</p></div>
+        </li>
+        <li class="actor">
+          <img src="assets/img/agente-kuki.webp" width="76" height="76" alt="Ilustración de Kuki" loading="lazy" decoding="async">
+          <div><h3>Kuki</h3><p class="papel">Ideas y ganchos</p>
+            <p>Ideas de hook, guiones y qué grabar la próxima vez.</p></div>
+        </li>
+      </ul>
+      <div class="charla escalonado" role="group" aria-label="Ejemplo de conversación con Miguelón">
+        <p class="burbuja tu">Miguelón, saca tres clips del en vivo de anoche y ponles subtítulos.</p>
+        <p class="burbuja ellos"><span class="quien">El Güero</span>Encontré tres momentos: la reacción al chile, el
+          chat que no lo creía y la despedida. Ya están en vertical.</p>
+        <p class="burbuja ellos"><span class="quien">Abigail</span>Les puse subtítulos palabra por palabra. ¿Los quieres
+          en amarillo?</p>
+        <p class="burbuja tu">Sí. Y que Memo los programe el jueves a las 7.</p>
+        <p class="pie">Ejemplo ilustrativo · por voz o por texto</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Escena 4: el rodaje -->
+<section class="acto" id="rodaje" aria-labelledby="t-rodaje">
+  <div class="contenedor">
+    <p class="escena revela">Escena 4 · El rodaje</p>
+    <h2 class="revela" id="t-rodaje">Del lugar a tus redes, <em>sin soltar el teléfono</em>.</h2>
+    <div class="rodaje">
+      <div class="escenario" aria-hidden="true">
+        <div class="telefono">
+          <div class="pantallas">
+            <div class="pantalla p1">
+              <p class="app-titulo">En campo</p>
+              <div class="vivo"><b>● EN VIVO</b><span>1:42:10 · 318 te ven</span></div>
+              <span class="boton-app">Marcar momento</span>
+              <p class="app-sub"><span>Qué grabar</span><span>4 de 10</span></p>
+              <ul class="lista-app">
+                <li class="ok">Hook</li><li class="ok">Contexto</li><li class="ok">El lugar por fuera</li>
+                <li class="ok">El menú</li><li>Lo que viví ahí</li><li>Despedida</li>
+              </ul>
+            </div>
+            <div class="pantalla p2">
+              <div class="video-mini"><p class="sub">Este café <i>te va a</i> sorprender</p><span class="flecha"></span></div>
+              <div class="linea-tiempo"><div></div><div class="t2"></div><div class="t3"></div></div>
+              <div class="mini-charla">
+                <span class="yo">Subtítulos amarillos y una flecha al menú</span>
+                <span class="el"><b>Abigail</b> · Listo: 24 subtítulos y la flecha en 0:07</span>
+              </div>
+            </div>
+            <div class="pantalla p3">
+              <p class="app-titulo">Clips</p>
+              <p class="app-sub"><span>En vivo de anoche</span><span>3 h 12 min</span></p>
+              <div class="energia"><i style="height:30%"></i><i style="height:45%"></i><i style="height:25%"></i><i class="pico" style="height:90%"></i><i class="pico" style="height:75%"></i><i style="height:35%"></i><i style="height:28%"></i><i style="height:50%"></i><i style="height:22%"></i><i class="pico" style="height:85%"></i><i style="height:40%"></i><i style="height:30%"></i><i style="height:55%"></i><i style="height:26%"></i><i class="pico" style="height:95%"></i><i class="pico" style="height:70%"></i><i style="height:33%"></i><i style="height:20%"></i></div>
+              <div class="aviso-app"><b>El Güero</b> encontró 3 momentos</div>
+              <div class="clip"><i></i><p><b>La reacción al chile</b><span>0:41</span></p></div>
+              <div class="clip"><i></i><p><b>El chat no lo creía</b><span>0:58</span></p></div>
+              <div class="clip"><i></i><p><b>La despedida</b><span>0:35</span></p></div>
+            </div>
+            <div class="pantalla p4">
+              <p class="app-titulo">Publicar</p>
+              <div class="fecha"><span>Cuándo</span><b>Jue 9 oct · 19:00</b></div>
+              <div class="redes">
+                <div><abbr title="TikTok">TT</abbr>TikTok<span>Listo</span></div>
+                <div><abbr title="YouTube">YT</abbr>YouTube<span>Listo</span></div>
+                <div><abbr title="Instagram">IG</abbr>Instagram<span>Listo</span></div>
+                <div><abbr title="Facebook">FB</abbr>Facebook<span>Listo</span></div>
+              </div>
+              <p class="app-sub"><span>Revisa lo que dirá cada red</span></p>
+              <span class="boton-app">Aprobar y programar</span>
+            </div>
+            <div class="barra-app"><span class="b1">En campo</span><span class="b2">Editar</span><span class="b3">Clips</span><span class="b4">Publicar</span></div>
+          </div>
+        </div>
+      </div>
+      <ol class="pasos">
+        <li class="paso" id="paso-1" data-paso="1"><div class="tarjeta">
+          <p class="num">1 · En campo</p>
+          <h3>Mientras grabas en el lugar</h3>
+          <p>La lista de qué grabar —el hook, el contexto, el lugar, lo que viviste, la despedida— para que no se te
+            olvide nada. Y si estás en vivo, tu panel: cuántos te ven, marcar momentos y cambiar el título en Kick.</p>
+        </div></li>
+        <li class="paso" id="paso-2" data-paso="2"><div class="tarjeta">
+          <p class="num">2 · Edita hablando</p>
+          <h3>Dile lo que quieres y míralo pasar</h3>
+          <p>«Quita los silencios», «subtítulos amarillos», «una flecha al menú en el segundo 7». Una línea de tiempo de
+            verdad, con recortes, textos, animaciones y música, en vertical 9:16 o en horizontal 16:9 para YouTube.</p>
+        </div></li>
+        <li class="paso" id="paso-3" data-paso="3"><div class="tarjeta">
+          <p class="num">3 · Clips de lo largo</p>
+          <h3>Tres horas de en vivo, tres minutos buenos</h3>
+          <p>De un en vivo o un video largo, Melies busca los mejores momentos por lo que dices y lo que se ve, y te los
+            deja como clips verticales para revisar. También arma un resumen para YouTube.</p>
+        </div></li>
+        <li class="paso" id="paso-4" data-paso="4"><div class="tarjeta">
+          <p class="num">4 · Publica y programa</p>
+          <h3>Todas tus redes, a la hora que elijas</h3>
+          <p>Elige las cuentas, escribe la descripción, pon fecha y hora y revisa lo que dirá cada red. Melies lo publica
+            en TikTok, YouTube, Instagram y Facebook. Nada sale sin que tú lo apruebes.</p>
+        </div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<div class="pelicula" aria-hidden="true"></div>
+
+<!-- Escena 5: la promesa -->
+<section class="acto promesa" id="tu-video" aria-labelledby="t-promesa">
+  <div class="contenedor">
+    <p class="escena revela">Escena 5 · Detrás de cámaras</p>
+    <h2 class="iris" id="t-promesa">Tu video vive en <em>tu teléfono</em>.</h2>
+    <p class="texto revela">Melies edita y genera el video en tu iPhone, con las herramientas de Apple. Nuestro servidor
+      <strong>nunca guarda tus videos</strong>.</p>
+    <ol class="viaje escalonado">
+      <li class="casa"><h3>Se edita y se genera en tu iPhone</h3>
+        <p>El MP4 final lo produce tu teléfono y se guarda en tu carrete. Los subtítulos salen del reconocimiento de
+          voz de Apple, en el mismo iPhone.</p></li>
+      <li><h3>El equipo lee texto, no tu video</h3>
+        <p>Para editar, Miguelón recibe una descripción en texto de tu línea de tiempo. Para buscar momentos, unos
+          cuantos fotogramas pequeños que se borran al responder.</p></li>
+      <li><h3>Solo viaja lo que publicas, y se borra</h3>
+        <p>Cuando programas una publicación, el archivo espera solo hasta entregarse a tus redes y se borra en cuanto
+          confirman: 48 horas como máximo.</p></li>
+    </ol>
+    <p class="revela"><a href="es/privacidad.html">Lee la política de privacidad completa</a></p>
+  </div>
+</section>
+
+<!-- Fin -->
+<section class="acto fin" id="fin" aria-labelledby="t-fin">
+  <div class="contenedor">
+    <img class="fin-img revela" src="assets/img/fin.webp" width="220" height="161" alt="" loading="lazy" decoding="async">
+    <h2 class="revela" id="t-fin">Muy pronto en App Store.</h2>
+    <p class="texto revela">Melies es para iPhone (iOS 17 o posterior). ¿Quieres saber cuándo sale? Escríbenos y te
+      avisamos.</p>
+    <div class="acciones revela" style="justify-content:center">
+      <p class="pronto">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14.5 2.5a9.5 9.5 0 1 0 7 15.9A8 8 0 0 1 14.5 2.5Z"/></svg>
+        <span><small>Muy pronto en</small><b>App Store</b></span>
+      </p>
+      <a class="boton-sec" href="mailto:roberto_luengas@hotmail.es?subject=Av%C3%ADsenme%20cuando%20salga%20Melies">Avísame</a>
+    </div>
+  </div>
+</section>
+
 </main>
-<footer>
-  <p>Melies · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="data-deletion.html">Data deletion</a> ·
-  <a href="mailto:roberto_luengas@hotmail.es">roberto_luengas@hotmail.es</a></p>
-  <p>TikTok, YouTube, Instagram, Facebook and Kick are trademarks of their respective owners. Melies is not affiliated with or endorsed by them.</p>
+
+<footer class="pie-pagina">
+  <div class="cols">
+    <div>
+      <img src="assets/img/melies-wordmark-sm.webp" width="83" height="28" alt="Melies" loading="lazy">
+      <p style="margin:12px 0 0">Homenaje a Georges Méliès (1861–1938).<br>
+        Contacto: <a href="mailto:roberto_luengas@hotmail.es">roberto_luengas@hotmail.es</a></p>
+    </div>
+    <nav aria-labelledby="pie-es">
+      <h2 id="pie-es">Español</h2>
+      <ul>
+        <li><a href="es/privacidad.html">Política de privacidad</a></li>
+        <li><a href="es/terminos.html">Condiciones del servicio</a></li>
+        <li><a href="es/eliminar-datos.html">Eliminar tus datos</a></li>
+      </ul>
+    </nav>
+    <nav aria-labelledby="pie-en" lang="en">
+      <h2 id="pie-en">English</h2>
+      <ul>
+        <li><a href="en/" hreflang="en">Melies in English</a></li>
+        <li><a href="privacy.html" hreflang="en">Privacy Policy</a></li>
+        <li><a href="terms.html" hreflang="en">Terms of Service</a></li>
+        <li><a href="data-deletion.html" hreflang="en">Data deletion</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="letra-chica">
+    <p>TikTok, YouTube, Instagram, Facebook, Kick, iPhone y App Store son marcas de sus respectivos dueños. Melies no
+      está afiliada a ellas ni las representa.</p>
+    <p>«Viaje a la Luna» (Georges Méliès, 1902) es de dominio público. Este sitio no usa cookies ni rastreadores.</p>
+  </div>
 </footer>
 </body>
 </html>
