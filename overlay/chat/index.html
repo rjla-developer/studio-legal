@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- El chat en OBS (12-oct-2026): el chat de Kick como burbujas de cristal, para una fuente de navegador de OBS.
+     Un solo archivo, sin nada de fuera (ni fuentes ni librerías). Lo único que se conecta es el flujo del API
+     (connect-src https:, y localhost para probar). La llave va en la dirección (?t=…): no-referrer para que no viaje a ningún lado más.
+     Los textos del chat se ponen SIEMPRE con textContent, nunca como HTML. Ver docs/CHAT-EN-OBS.md. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-46HucEFj5YMwJngz1wl1jCMU75+/W2o0QCILm5ML6FI='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Chat emergente · Melies</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  body {
+    --u: 2; --e: 0.53; --tinte: 0.18;
+    width: 100vw; height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Solo para previsualizar en un navegador (?fondo=1): el lienzo del diseño. En OBS, transparente. */
+  body.fondo { background: linear-gradient(135deg, #1B2B3A 0%, #2A1D1B 55%, #120C0E 100%); }
+  body.fondo::after {
+    content: "Aquí va tu en vivo"; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: calc(28px * var(--u)); font-weight: 600; letter-spacing: 0.04em; color: rgba(255,255,255,0.10); pointer-events: none;
+  }
+  /* La zona del chat: arriba a la izquierda. Las burbujas nacen abajo de ella y suben. */
+  #zona {
+    position: fixed; left: calc(22px * var(--u)); top: calc(22px * var(--u));
+    width: calc(210px * var(--u)); height: calc(178px * var(--u));
+    pointer-events: none;
+  }
+  .b {
+    position: absolute; left: 0; bottom: 0; box-sizing: border-box;
+    max-width: calc(240px * var(--u) * var(--e));
+    padding: calc(6px * var(--u) * var(--e)) calc(12px * var(--u) * var(--e)) calc(7px * var(--u) * var(--e));
+    border-radius: calc(14px * var(--u) * var(--e)) calc(14px * var(--u) * var(--e)) calc(14px * var(--u) * var(--e)) calc(4px * var(--u) * var(--e));
+    /* El cristal del diseño + un tinte oscuro (?tinte=): en OBS el desenfoque no ve el video de abajo. */
+    background: linear-gradient(rgba(255,255,255,0.11), rgba(255,255,255,0.11)), rgba(18,12,14,var(--tinte));
+    border: calc(1px * var(--u) / 2) solid rgba(255,255,255,0.24);
+    box-shadow: 0 calc(6px * var(--u)) calc(20px * var(--u)) rgba(0,0,0,0.28), inset 0 calc(1px * var(--u) / 2) 0 rgba(255,255,255,0.28);
+    -webkit-backdrop-filter: blur(calc(14px * var(--u))) saturate(150%);
+    backdrop-filter: blur(calc(14px * var(--u))) saturate(150%);
+    color: #FFFFFF; font-size: calc(13.5px * var(--u) * var(--e)); line-height: 1.25;
+    text-shadow: 0 calc(1px * var(--u) / 2) calc(2px * var(--u) / 2) rgba(0,0,0,0.35);
+    transform-origin: 0 100%; opacity: 0; will-change: transform, opacity;
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+  .n {
+    font-size: calc(11px * var(--u) * var(--e)); font-weight: 700; letter-spacing: 0.02em;
+    margin-bottom: calc(1px * var(--u) * var(--e));
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .t { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  /* El estado de la conexión: un puntito casi invisible en la esquina; nada cuando está conectado. */
+  #punto {
+    position: fixed; left: calc(4px * var(--u)); top: calc(4px * var(--u));
+    width: calc(3px * var(--u)); height: calc(3px * var(--u)); border-radius: 50%; opacity: 0.35;
+  }
+  #punto.conectando { background: #E3B04B; }
+  #punto.sin-conexion, #punto.sin-llave { background: #E05A4F; }
+  #diagnostico {
+    position: fixed; left: calc(10px * var(--u)); bottom: calc(10px * var(--u)); max-width: 60vw;
+    font-size: calc(8px * var(--u)); color: rgba(255,255,255,0.85); background: rgba(18,12,14,0.6);
+    padding: calc(3px * var(--u)) calc(6px * var(--u)); border-radius: calc(4px * var(--u));
+  }
+</style>
+</head>
+<body>
+<div id="zona"></div>
+<div id="punto" hidden></div>
+<div id="diagnostico" hidden></div>
+<script>
+(function () {
+  'use strict';
+
+  // ── Opciones (por la dirección) ────────────────────────────────────────────
+  // t        la llave del chat en OBS (de solo ver este flujo)
+  // escala   tamaño de las burbujas (0.53 = el diseño aprobado)
+  // seg      segundos que dura cada mensaje (20)
+  // max      cuántos a la vez como mucho (10); el más viejo se apaga rápido
+  // bots     nombres extra que no salen, separados por comas
+  // demo=1   mensajes de ejemplo, sin servidor (para previsualizar)
+  // fondo=1  pinta el fondo del diseño (solo para mirarlo en un navegador)
+  // tinte    lo oscuro del cristal, 0 a 0.8 (0.18; 0 = el diseño tal cual)
+  // diagnostico=1  dice con letras por qué no conecta (para configurarlo)
+  // api      a qué servidor se conecta (https; por omisión el de Melies)
+  var CFG = window.ChatEmergenteConfig || {};
+  var parametros = new URLSearchParams(typeof CFG.busqueda === 'string' ? CFG.busqueda : location.search);
+  var reloj = typeof CFG.reloj === 'function' ? CFG.reloj : function () { return Date.now(); };
+
+  function numero(nombre, porOmision, min, max) {
+    var v = parseFloat(parametros.get(nombre));
+    if (!isFinite(v)) return porOmision;
+    return Math.min(max, Math.max(min, v));
+  }
+  function apiDe(texto) {
+    if (!texto) return null;
+    try {
+      var u = new URL(texto);
+      if (u.protocol !== 'https:' && !(u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1'))) return null;
+      return u.href.replace(/\/+$/, '');
+    } catch (e) { return null; }
+  }
+  function nombresDeBots(texto) {
+    if (!texto) return [];
+    return texto.split(',').map(function (s) { return s.trim().toLowerCase(); })
+      .filter(function (s) { return /^[a-z0-9_.-]{1,40}$/.test(s); }).slice(0, 30);
+  }
+
+  var op = {
+    llave: (parametros.get('t') || '').trim(),
+    api: apiDe(parametros.get('api')) || 'https://studio-dev.leviath4n.net/api',
+    escala: numero('escala', 0.53, 0.2, 2),
+    seg: numero('seg', 20, 5, 120),
+    max: Math.round(numero('max', 10, 1, 30)),
+    bots: nombresDeBots(parametros.get('bots')),
+    demo: parametros.get('demo') === '1',
+    fondo: parametros.get('fondo') === '1',
+    tinte: numero('tinte', 0.18, 0, 0.8),
+    diagnostico: parametros.get('diagnostico') === '1'
+  };
+
+  // ── Las reglas del diseño aprobado («B · Burbujas de cristal») ─────────────
+  var COLORES = { moderador: '#6FD18A', vip: '#E8935A', suscriptor: '#B79CF0', resto: '#D8E4F2' };
+  var BOTS = ['melies', 'meliesapp', 'meliesbot', 'botrix', 'nightbot', 'kickbot', 'streamelements', 'fossabot',
+    'moobot', 'streamlabs', 'sery_bot', 'wizebot', 'kicklet', 'blerp'];
+  var LARGO_MAXIMO = 160;          // un mensaje más largo se corta con «…» (y la burbuja enseña 4 renglones)
+  var NOMBRE_MAXIMO = 25;
+  var SALIDA_RAPIDA_MS = 450;      // lo que tarda en apagarse el más viejo cuando ya hay `max`
+  var SILENCIO_MAXIMO_MS = 45000;  // sin un latido en este tiempo, la conexión se da por muerta
+  var DISENO = { izquierda: 22, arriba: 22, ancho: 210, alto: 178, salto: 8, subida: 190, hueco: 4 };
+  var DESPLAZAMIENTOS = [0, 46, 12, 60, 20, 40];  // las x del diseño, para que no queden en fila india
+
+  /** El color del nombre: moderador (y el dueño) verde, VIP naranja, suscriptor morado, el resto blanco azulado. */
+  function colorDe(insignias) {
+    var i = Array.isArray(insignias) ? insignias : [];
+    if (i.indexOf('moderador') >= 0 || i.indexOf('transmisor') >= 0) return COLORES.moderador;
+    if (i.indexOf('vip') >= 0) return COLORES.vip;
+    if (i.indexOf('suscriptor') >= 0) return COLORES.suscriptor;
+    return COLORES.resto;
+  }
+  /** Los emotes de Kick por su nombre, sin espacios de más y cortado. */
+  function limpiarTexto(texto) {
+    var t = String(texto == null ? '' : texto).replace(/\[emote:\d+:([^\]]{1,60})\]/g, '$1').replace(/\s+/g, ' ').trim();
+    return t.length > LARGO_MAXIMO ? t.slice(0, LARGO_MAXIMO - 1).trimEnd() + '…' : t;
+  }
+  function limpiarNombre(nombre) {
+    var n = String(nombre == null ? '' : nombre).replace(/\s+/g, ' ').trim() || 'Alguien';
+    return n.length > NOMBRE_MAXIMO ? n.slice(0, NOMBRE_MAXIMO - 1) + '…' : n;
+  }
+  /** ¿Sale en pantalla? Ni bots ni comandos (lo que empieza con ! o /) ni vacíos. */
+  function seVe(nombre, texto) {
+    var t = String(texto || '').trim();
+    if (!t || t.charAt(0) === '!' || t.charAt(0) === '/') return false;
+    var n = String(nombre || '').trim().toLowerCase();
+    return BOTS.indexOf(n) < 0 && op.bots.indexOf(n) < 0;
+  }
+
+  // ── El tiempo de una burbuja (los fotogramas clave del diseño) ─────────────
+  // 0 %: invisible y un poco chica · 6 %: entra con un saltito (8 px) · 72 %: empieza a apagarse · 100 %: arriba (190 px), apagada.
+  function bezier(x1, y1, x2, y2) {
+    function a(p1, p2) { return 1 - 3 * p2 + 3 * p1; }
+    function b(p1, p2) { return 3 * p2 - 6 * p1; }
+    function c(p1) { return 3 * p1; }
+    function curva(t, p1, p2) { return ((a(p1, p2) * t + b(p1, p2)) * t + c(p1)) * t; }
+    function pendiente(t, p1, p2) { return 3 * a(p1, p2) * t * t + 2 * b(p1, p2) * t + c(p1); }
+    return function (x) {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      var t = x;
+      for (var i = 0; i < 8; i++) {
+        var d = curva(t, x1, x2) - x;
+        var m = pendiente(t, x1, x2);
+        if (Math.abs(d) < 1e-6 || m === 0) break;
+        t -= d / m;
+      }
+      return curva(Math.min(1, Math.max(0, t)), y1, y2);
+    };
+  }
+  var easeIn = bezier(0.42, 0, 1, 1);
+
+  /** Dónde va y cómo se ve a cierta altura de su vida (p de 0 a 1). Distancias en unidades del diseño. */
+  function momento(p) {
+    var subida, escala, opacidad;
+    if (p < 0.06) {
+      var k = easeIn(p / 0.06);
+      subida = DISENO.salto * k; escala = 0.94 + 0.06 * k; opacidad = k;
+    } else {
+      subida = DISENO.salto + (DISENO.subida - DISENO.salto) * easeIn((p - 0.06) / 0.94); escala = 1;
+      opacidad = p < 0.72 ? 1 : 1 - easeIn((p - 0.72) / 0.28);
+    }
+    return { subida: subida, escala: escala, opacidad: Math.max(0, Math.min(1, opacidad)) };
+  }
+
+  // ── Las burbujas ───────────────────────────────────────────────────────────
+  var zona = document.getElementById('zona');
+  var punto = document.getElementById('punto');
+  var diagnostico = document.getElementById('diagnostico');
+  var burbujas = [];            // de la más vieja a la más nueva
+  var vistos = new Map();       // id → cuándo, para no repetir lo que vuelve a llegar tras una reconexión
+  var u = 2;                    // px por unidad del diseño (960 × 540): 2 en 1920 × 1080
+  var vidaMs = op.seg * 1000;
+  var pintando = false;
+
+  function medir(el) {
+    if (typeof CFG.medir === 'function') return CFG.medir(el);
+    return el.offsetHeight || 0;
+  }
+  function ajustarTamano() {
+    u = (window.innerWidth || 1920) / 960;
+    document.body.style.setProperty('--u', String(u));
+    document.body.style.setProperty('--e', String(op.escala));
+    document.body.style.setProperty('--tinte', String(op.tinte));
+    for (var i = 0; i < burbujas.length; i++) burbujas[i].alto = medir(burbujas[i].el);
+  }
+  function hash(s) {
+    var h = 0;
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  /**
+   * Un mensaje del chat → una burbuja. Devuelve si salió en pantalla.
+   * {id, nombre, texto, insignias, edadMs}: lo que ya llevaba en el servidor se le descuenta a su vida.
+   */
+  function recibir(m) {
+    if (!m || typeof m !== 'object') return false;
+    var id = String(m.id == null ? '' : m.id);
+    if (!id || vistos.has(id)) return false;
+    var texto = limpiarTexto(m.texto);
+    if (!texto || !seVe(m.nombre, m.texto)) return false;
+    var edad = Math.max(0, Number(m.edadMs) || 0);
+    if (edad >= vidaMs) return false;
+    var ahora = reloj();
+    vistos.set(id, ahora);
+    if (vistos.size > 500) vistos.delete(vistos.keys().next().value);
+
+    var el = document.createElement('div');
+    el.className = 'b';
+    var nombre = document.createElement('div');
+    nombre.className = 'n';
+    nombre.textContent = limpiarNombre(m.nombre);
+    nombre.style.color = colorDe(m.insignias);
+    var cuerpo = document.createElement('div');
+    cuerpo.className = 't';
+    cuerpo.textContent = texto;
+    el.appendChild(nombre);
+    el.appendChild(cuerpo);
+    zona.appendChild(el);
+
+    var b = { id: id, el: el, nacio: ahora - edad, x: DESPLAZAMIENTOS[hash(id) % DESPLAZAMIENTOS.length], alto: 0, saliendo: null, y: 0 };
+    b.alto = medir(el);
+    burbujas.push(b);
+
+    // El tope de seguridad: con más de `max`, la más vieja se apaga rápido.
+    var vivas = burbujas.filter(function (x) { return x.saliendo === null; });
+    for (var i = 0; i < vivas.length - op.max; i++) vivas[i].saliendo = ahora;
+    pintar();
+    arrancarPintura();
+    return true;
+  }
+
+  /** Coloca y apaga cada burbuja para este instante. De la más nueva a la más vieja: una nueva empuja a las de arriba, nunca se enciman. */
+  function pintar() {
+    var ahora = reloj();
+    var techo = null;
+    var hueco = DISENO.hueco * u * op.escala;
+    var limite = DISENO.subida * u;
+    var quedan = [];
+    for (var i = burbujas.length - 1; i >= 0; i--) {
+      var b = burbujas[i];
+      var p = (ahora - b.nacio) / vidaMs;
+      var fuera = p >= 1;
+      var m = momento(Math.max(0, Math.min(1, p)));
+      var y = m.subida * u;
+      if (techo !== null) y = Math.max(y, techo + hueco);
+      var opacidad = m.opacidad;
+      if (y > limite) {
+        // Empujada más arriba de donde llega sola: se apaga en lo que mide.
+        var sobra = (y - limite) / Math.max(1, b.alto);
+        opacidad *= Math.max(0, 1 - sobra);
+        if (sobra >= 1) fuera = true;
+      }
+      if (b.saliendo !== null) {
+        var f = (ahora - b.saliendo) / SALIDA_RAPIDA_MS;
+        opacidad *= Math.max(0, 1 - f);
+        if (f >= 1) fuera = true;
+      }
+      if (fuera) {
+        if (b.el.parentNode) b.el.parentNode.removeChild(b.el);
+        continue;
+      }
+      b.y = y;
+      b.el.style.opacity = String(Math.round(opacidad * 1000) / 1000);
+      b.el.style.transform = 'translate3d(' + (b.x * u).toFixed(1) + 'px,' + (-y).toFixed(1) + 'px,0) scale(' + m.escala.toFixed(4) + ')';
+      techo = y + b.alto * m.escala;
+      quedan.unshift(b);
+    }
+    burbujas = quedan;
+    return burbujas.length;
+  }
+
+  var pedirCuadro = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function (f) { return setTimeout(f, 16); };
+  function arrancarPintura() {
+    if (pintando || CFG.sinArrancar) return;
+    pintando = true;
+    pedirCuadro(function cuadro() {
+      if (pintar() > 0) pedirCuadro(cuadro);
+      else pintando = false;
+    });
+  }
+
+  // ── El estado de la conexión: conectando · conectado · sin conexión ────────
+  var estado = 'conectando';
+  var fuente = null;
+  var reintentos = 0;
+  var relojDeReintento = null;
+  var ultimoDato = 0;
+
+  function ponerEstado(nuevo, motivo) {
+    estado = nuevo;
+    var callado = nuevo === 'conectado' || nuevo === 'demo';
+    punto.hidden = callado;
+    punto.className = callado ? '' : nuevo;
+    if (op.diagnostico) {
+      var textos = { conectando: 'Conectando con el chat…', conectado: 'Conectado: esperando mensajes del chat.', 'sin-conexion': 'Sin conexión con el chat; vuelvo a intentar solo.', 'sin-llave': 'Falta la llave (?t=…) en la dirección.', demo: 'Demo: mensajes de ejemplo.' };
+      diagnostico.hidden = false;
+      diagnostico.textContent = motivo || textos[nuevo] || nuevo;
+    }
+  }
+
+  function direccion(extra) {
+    var q = '?t=' + encodeURIComponent(op.llave);
+    if (op.bots.length) q += '&bots=' + encodeURIComponent(op.bots.join(','));
+    return op.api + '/overlay/chat/transmision' + q + (extra || '');
+  }
+
+  function cerrarFuente() {
+    if (fuente) {
+      try { fuente.close(); } catch (e) { /* ya cerrada */ }
+      fuente = null;
+    }
+  }
+
+  function conectar() {
+    clearTimeout(relojDeReintento);
+    if (!op.llave) { ponerEstado('sin-llave'); return; }
+    var Fuente = CFG.EventSource || window.EventSource;
+    if (!Fuente) { ponerEstado('sin-conexion', 'Este navegador no sabe recibir el chat (sin EventSource).'); return; }
+    cerrarFuente();
+    ponerEstado('conectando');
+    ultimoDato = reloj();
+    var esta = new Fuente(direccion(''));
+    fuente = esta;
+    function vivo() { ultimoDato = reloj(); }
+    esta.addEventListener('estado', function () {
+      vivo(); reintentos = 0; ponerEstado('conectado');
+      if (op.diagnostico) comprobar();
+    });
+    esta.addEventListener('latido', function () { vivo(); if (estado !== 'conectado') ponerEstado('conectado'); });
+    esta.addEventListener('mensaje', function (ev) {
+      vivo();
+      var m = null;
+      try { m = JSON.parse(ev.data); } catch (e) { return; }
+      recibir(m);
+    });
+    esta.addEventListener('aviso', function (ev) {
+      vivo();
+      if (!op.diagnostico) return;
+      try { diagnostico.textContent = String(JSON.parse(ev.data).motivo || ''); } catch (e) { /* nada */ }
+    });
+    esta.onerror = function () {
+      if (fuente !== esta) return;
+      // CERRADA (2): el servidor dijo que no (401, 503…) o no es un flujo → reintentar con espera creciente.
+      // CONECTANDO (0): el navegador ya se está reconectando solo.
+      if (esta.readyState === 2) reintentarLuego();
+      else ponerEstado('conectando');
+    };
+  }
+
+  function reintentarLuego() {
+    cerrarFuente();
+    var espera = Math.min(30000, 1000 * Math.pow(2, reintentos)) + Math.floor(Math.random() * 500);
+    reintentos = Math.min(reintentos + 1, 10);
+    ponerEstado('sin-conexion');
+    if (op.diagnostico) comprobar();
+    clearTimeout(relojDeReintento);
+    relojDeReintento = setTimeout(conectar, espera);
+    return espera;
+  }
+
+  /** Solo con ?diagnostico=1: pregunta al servidor POR QUÉ (llave, Kick) y lo escribe chiquito abajo. */
+  function comprobar() {
+    if (!window.fetch || !op.llave) return;
+    window.fetch(direccion('&comprobar=1'), { cache: 'no-store', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.json().catch(function () { return { message: 'El servidor contestó ' + r.status + '.' }; }); })
+      .then(function (j) {
+        var texto = j && j.ok
+          ? (j.chat && !j.chat.suscrito ? 'Conectado, pero Kick no manda el chat: ' + (j.chat.motivo || 'sin motivo') : 'Conectado: esperando mensajes del chat.')
+          : String((j && j.message) || 'El servidor no dijo por qué.');
+        diagnostico.hidden = false;
+        diagnostico.textContent = texto;
+      })
+      .catch(function () { diagnostico.hidden = false; diagnostico.textContent = 'No llego al servidor del chat (' + op.api + ').'; });
+  }
+
+  function vigilar() {
+    if (fuente && estado !== 'sin-conexion' && reloj() - ultimoDato > SILENCIO_MAXIMO_MS) reintentarLuego();
+  }
+
+  // ── La demo (?demo=1): para previsualizar sin Kick ni servidor ─────────────
+  var EJEMPLOS = [
+    { nombre: 'luna_', insignias: [], texto: 'Qué rico se ve eso' },
+    { nombre: 'tavo92', insignias: ['suscriptor'], texto: 'jajaja no puede ser' },
+    { nombre: 'chef_marce', insignias: ['vip'], texto: '¿Dónde queda ese lugar?' },
+    { nombre: 'mod_pau', insignias: ['moderador'], texto: 'Bienvenidos todos' },
+    { nombre: 'Botrix', insignias: [], texto: 'Síguenos en Instagram (este no sale: es un bot)' },
+    { nombre: 'nico.d', insignias: [], texto: 'Ya llegué, ¿qué me perdí?' },
+    { nombre: 'sol_ana', insignias: ['suscriptor'], texto: 'Mándanos el siguiente platillo [emote:37226:KEKW]' },
+    { nombre: 'tavo92', insignias: ['suscriptor'], texto: '!sorteo' },
+    { nombre: '<b>sin_html</b>', insignias: [], texto: 'Esto se ve tal cual: <img src=x>' },
+    { nombre: 'chef_marce', insignias: ['vip'], texto: 'Un mensaje largo para ver cómo se acomoda: la burbuja crece hacia abajo, enseña cuatro renglones como mucho y lo que sobra se corta con puntos suspensivos para no tapar el en vivo.' }
+  ];
+  var demoN = 0;
+  function demo() {
+    var e = EJEMPLOS[demoN % EJEMPLOS.length];
+    recibir({ id: 'demo-' + (demoN++), nombre: e.nombre, texto: e.texto, insignias: e.insignias, edadMs: 0 });
+    setTimeout(demo, 900 + Math.floor(Math.random() * 2600));
+  }
+
+  // ── Arranque ───────────────────────────────────────────────────────────────
+  if (op.fondo) document.body.classList.add('fondo');
+  ajustarTamano();
+  window.addEventListener('resize', ajustarTamano);
+
+  window.ChatEmergente = {
+    opciones: op, colores: COLORES, recibir: recibir, pintar: pintar, colorDe: colorDe, limpiarTexto: limpiarTexto, seVe: seVe,
+    momento: momento, conectar: conectar, reintentarLuego: reintentarLuego, vigilar: vigilar,
+    estado: function () { return estado; },
+    burbujas: function () { return burbujas.map(function (b) { return { id: b.id, y: b.y, saliendo: b.saliendo !== null, el: b.el }; }); }
+  };
+
+  if (CFG.sinArrancar) return;
+  if (op.demo) { ponerEstado('demo'); demo(); return; }
+  setInterval(vigilar, 5000);
+  conectar();
+})();
+</script>
+</body>
+</html>
