@@ -7,14 +7,14 @@
      Un solo archivo, sin nada de fuera (ni fuentes ni librerías). Lo único que se conecta es el flujo del API
      (connect-src https:, y localhost para probar). La llave va en la dirección (?t=…): no-referrer para que no viaje a ningún lado más.
      Los textos del chat se ponen SIEMPRE con textContent, nunca como HTML. Ver docs/CHAT-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DLbUZkJT1ar7Wv/kbZE91hQ/GARp+oFCQKM6Sg52kWU='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6Qik4kZABjwfbbYthXca93OcviqH2OBO5oYuTaRaEmM='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat emergente · Melies</title>
 <style>
   html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
   body {
-    --u: 2; --e: 0.53; --tinte: 0.4;
+    --u: 2; --e: 0.53; --tinte: 0.1;
     width: 100vw; height: 100vh;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -31,19 +31,30 @@
     width: calc(210px * var(--u)); height: calc(178px * var(--u));
     pointer-events: none;
   }
+  /* La SOMBRA DE FONDO (13-oct-2026): una mancha suave y oscura detrás de los mensajes y delante de la pantalla, para que se
+     distingan de la escena. NO es sombra de las burbujas. Solo se ve mientras hay mensajes; sin :has() no se pinta (y todo lo demás sigue igual). */
+  #zona { z-index: 0; }
+  #zona::before {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    left: calc(-22px * var(--u)); top: calc(-22px * var(--u));
+    width: calc(520px * var(--u)); height: calc(430px * var(--u));
+    background: radial-gradient(ellipse 50% 50% at 20% 31%, rgba(0,0,0,0.46) 0%, rgba(0,0,0,0.32) 38%, rgba(0,0,0,0.12) 72%, rgba(0,0,0,0) 100%);
+    opacity: 0; transition: opacity 0.9s ease;
+  }
+  #zona:has(.b)::before { opacity: 1; }
   .b {
     position: absolute; left: 0; bottom: 0; box-sizing: border-box;
     max-width: calc(240px * var(--u) * var(--e));
     padding: calc(6px * var(--u) * var(--e)) calc(12px * var(--u) * var(--e)) calc(7px * var(--u) * var(--e));
     border-radius: calc(14px * var(--u) * var(--e)) calc(14px * var(--u) * var(--e)) calc(14px * var(--u) * var(--e)) calc(4px * var(--u) * var(--e));
     /* El cristal del diseño + un tinte oscuro (?tinte=): en OBS el desenfoque no ve el video de abajo. */
-    background: linear-gradient(135deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 55%, rgba(255,255,255,0.12) 100%), rgba(18,12,14,var(--tinte));
+    background: linear-gradient(135deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.08) 55%, rgba(255,255,255,0.16) 100%), rgba(18,12,14,var(--tinte));
     border: calc(1px * var(--u) / 2) solid rgba(255,255,255,0.42);
-    box-shadow: 0 calc(3px * var(--u)) calc(10px * var(--u)) rgba(0,0,0,0.42), 0 calc(10px * var(--u)) calc(30px * var(--u)) rgba(0,0,0,0.32), inset 0 calc(1px * var(--u) / 2) 0 rgba(255,255,255,0.45);
+    box-shadow: inset 0 calc(1px * var(--u) / 2) 0 rgba(255,255,255,0.55);
     -webkit-backdrop-filter: blur(calc(14px * var(--u))) saturate(150%);
     backdrop-filter: blur(calc(14px * var(--u))) saturate(150%);
     color: #FFFFFF; font-size: calc(13.5px * var(--u) * var(--e)); line-height: 1.25;
-    text-shadow: 0 calc(1px * var(--u) / 2) calc(3px * var(--u) / 2) rgba(0,0,0,0.85);
+    text-shadow: 0 calc(1px * var(--u) / 2) calc(2px * var(--u) / 2) rgba(0,0,0,0.55);
     transform-origin: 0 100%; opacity: 0; will-change: transform, opacity;
     overflow-wrap: anywhere; word-break: break-word;
   }
@@ -83,7 +94,7 @@
   // bots     nombres extra que no salen, separados por comas
   // demo=1   mensajes de ejemplo, sin servidor (para previsualizar)
   // fondo=1  pinta el fondo del diseño (solo para mirarlo en un navegador)
-  // tinte    lo oscuro del cristal, 0 a 0.8 (0.4; 0 = el diseño tal cual). Subió de 0.18 el 13-oct-2026: sobre una escena clara no se leía; a 0.6 perdía lo de cristal
+  // tinte    lo oscuro del cristal, 0 a 0.8 (0.1; 0 = el diseño tal cual). La legibilidad sobre una escena clara NO la da el tinte de la burbuja sino la SOMBRA DE FONDO (#zona::before), detrás de los mensajes y delante de la pantalla (13-oct-2026)
   // diagnostico=1  dice con letras por qué no conecta (para configurarlo)
   // api      a qué servidor se conecta (https; por omisión el de Melies)
   var CFG = window.ChatEmergenteConfig || {};
@@ -118,7 +129,7 @@
     bots: nombresDeBots(parametros.get('bots')),
     demo: parametros.get('demo') === '1',
     fondo: parametros.get('fondo') === '1',
-    tinte: numero('tinte', 0.4, 0, 0.8),
+    tinte: numero('tinte', 0.1, 0, 0.8),
     diagnostico: parametros.get('diagnostico') === '1'
   };
 
