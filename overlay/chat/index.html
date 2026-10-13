@@ -7,14 +7,14 @@
      Un solo archivo, sin nada de fuera (ni fuentes ni librerías). Lo único que se conecta es el flujo del API
      (connect-src https:, y localhost para probar). La llave va en la dirección (?t=…): no-referrer para que no viaje a ningún lado más.
      Los textos del chat se ponen SIEMPRE con textContent, nunca como HTML. Ver docs/CHAT-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-M8YMe7NiH/bGTdECiAdMQs7gt7LqYP03Kinch7M80zo='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DLbUZkJT1ar7Wv/kbZE91hQ/GARp+oFCQKM6Sg52kWU='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat emergente · Melies</title>
 <style>
   html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
   body {
-    --u: 2; --e: 0.53; --tinte: 0.6;
+    --u: 2; --e: 0.53; --tinte: 0.4;
     width: 100vw; height: 100vh;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -37,9 +37,9 @@
     padding: calc(6px * var(--u) * var(--e)) calc(12px * var(--u) * var(--e)) calc(7px * var(--u) * var(--e));
     border-radius: calc(14px * var(--u) * var(--e)) calc(14px * var(--u) * var(--e)) calc(14px * var(--u) * var(--e)) calc(4px * var(--u) * var(--e));
     /* El cristal del diseño + un tinte oscuro (?tinte=): en OBS el desenfoque no ve el video de abajo. */
-    background: linear-gradient(rgba(255,255,255,0.07), rgba(255,255,255,0.07)), rgba(18,12,14,var(--tinte));
-    border: calc(1px * var(--u) / 2) solid rgba(255,255,255,0.24);
-    box-shadow: 0 calc(6px * var(--u)) calc(20px * var(--u)) rgba(0,0,0,0.28), inset 0 calc(1px * var(--u) / 2) 0 rgba(255,255,255,0.28);
+    background: linear-gradient(135deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 55%, rgba(255,255,255,0.12) 100%), rgba(18,12,14,var(--tinte));
+    border: calc(1px * var(--u) / 2) solid rgba(255,255,255,0.42);
+    box-shadow: 0 calc(6px * var(--u)) calc(20px * var(--u)) rgba(0,0,0,0.28), inset 0 calc(1px * var(--u) / 2) 0 rgba(255,255,255,0.45);
     -webkit-backdrop-filter: blur(calc(14px * var(--u))) saturate(150%);
     backdrop-filter: blur(calc(14px * var(--u))) saturate(150%);
     color: #FFFFFF; font-size: calc(13.5px * var(--u) * var(--e)); line-height: 1.25;
@@ -83,7 +83,7 @@
   // bots     nombres extra que no salen, separados por comas
   // demo=1   mensajes de ejemplo, sin servidor (para previsualizar)
   // fondo=1  pinta el fondo del diseño (solo para mirarlo en un navegador)
-  // tinte    lo oscuro del cristal, 0 a 0.8 (0.6; 0 = el diseño tal cual). Subió de 0.18 el 13-oct-2026: sobre una escena clara no se leía
+  // tinte    lo oscuro del cristal, 0 a 0.8 (0.4; 0 = el diseño tal cual). Subió de 0.18 el 13-oct-2026: sobre una escena clara no se leía; a 0.6 perdía lo de cristal
   // diagnostico=1  dice con letras por qué no conecta (para configurarlo)
   // api      a qué servidor se conecta (https; por omisión el de Melies)
   var CFG = window.ChatEmergenteConfig || {};
@@ -118,7 +118,7 @@
     bots: nombresDeBots(parametros.get('bots')),
     demo: parametros.get('demo') === '1',
     fondo: parametros.get('fondo') === '1',
-    tinte: numero('tinte', 0.6, 0, 0.8),
+    tinte: numero('tinte', 0.4, 0, 0.8),
     diagnostico: parametros.get('diagnostico') === '1'
   };
 
@@ -134,12 +134,19 @@
   var DESPLAZAMIENTOS = [0, 46, 12, 60, 20, 40];  // las x del diseño, para que no queden en fila india
 
   /** El color del nombre: moderador (y el dueño) verde, VIP naranja, suscriptor morado, el resto blanco azulado. */
-  function colorDe(insignias) {
+  // Quien no trae insignia no sale blanco: cada nombre tiene SU color, siempre el mismo (sin verde, morado ni naranja, que son de insignias).
+  var PALETA = ['#7FB0E8', '#F0A6CA', '#5CC8C8', '#E3D06A', '#E58A8A', '#A9B8F0', '#8EC9F2', '#F2A9D8'];
+  function colorDelNombre(nombre) {
+    var h = 0, t = String(nombre || '');
+    for (var k = 0; k < t.length; k++) h = (h * 31 + t.charCodeAt(k)) >>> 0;
+    return PALETA[h % PALETA.length];
+  }
+  function colorDe(insignias, nombre) {
     var i = Array.isArray(insignias) ? insignias : [];
     if (i.indexOf('moderador') >= 0 || i.indexOf('transmisor') >= 0) return COLORES.moderador;
     if (i.indexOf('vip') >= 0) return COLORES.vip;
     if (i.indexOf('suscriptor') >= 0) return COLORES.suscriptor;
-    return COLORES.resto;
+    return nombre ? colorDelNombre(nombre) : COLORES.resto;
   }
   /** Los emotes de Kick por su nombre, sin espacios de más y cortado. */
   function limpiarTexto(texto) {
@@ -242,7 +249,7 @@
     var nombre = document.createElement('div');
     nombre.className = 'n';
     nombre.textContent = limpiarNombre(m.nombre);
-    nombre.style.color = colorDe(m.insignias);
+    nombre.style.color = colorDe(m.insignias, m.nombre);
     var cuerpo = document.createElement('div');
     cuerpo.className = 't';
     cuerpo.textContent = texto;
