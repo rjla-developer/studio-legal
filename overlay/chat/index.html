@@ -7,7 +7,7 @@
      Un solo archivo, sin nada de fuera (ni fuentes ni librerías). Lo único que se conecta es el flujo del API
      (connect-src https:, y localhost para probar). La llave va en la dirección (?t=…): no-referrer para que no viaje a ningún lado más.
      Los textos del chat se ponen SIEMPRE con textContent, nunca como HTML. Ver docs/CHAT-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UWozIxLIKZajGPBGDZIRj8zda7OCa766LziHxe/qKBM='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Kx3pgY+i6F6jzNoLAZmKP1kDVpwhDBLa4PXsy42lozg='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat emergente · Melies</title>
@@ -25,10 +25,10 @@
     content: "Aquí va tu en vivo"; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: calc(28px * var(--u)); font-weight: 600; letter-spacing: 0.04em; color: rgba(255,255,255,0.10); pointer-events: none;
   }
-  /* La zona del chat: arriba a la izquierda. Las burbujas nacen abajo de ella y suben. */
+  /* La zona del chat: arriba a la izquierda. Las burbujas nacen abajo de ella (a 5 px por debajo de la cámara de la escena, 14-oct-2026) y suben. */
   #zona {
-    position: fixed; left: calc(22px * var(--u)); top: calc(22px * var(--u));
-    width: calc(280px * var(--u)); height: calc(237px * var(--u));
+    position: fixed; left: calc(10px * var(--u)); top: calc(22px * var(--u));
+    width: calc(280px * var(--u)); height: calc(139px * var(--u));
     pointer-events: none;
   }
   /* La SOMBRA DE FONDO (13-oct-2026): una mancha suave y oscura detrás de los mensajes y delante de la pantalla, para que se
@@ -37,8 +37,8 @@
   #zona::before {
     content: ""; position: absolute; z-index: -1; pointer-events: none;
     left: calc(-22px * var(--u)); top: calc(-22px * var(--u));
-    width: calc(520px * var(--u)); height: calc(430px * var(--u));
-    background: radial-gradient(ellipse 50% 50% at 20% 31%, rgba(0,0,0,0.46) 0%, rgba(0,0,0,0.32) 38%, rgba(0,0,0,0.12) 72%, rgba(0,0,0,0) 100%);
+    width: calc(520px * var(--u)); height: calc(340px * var(--u));
+    background: radial-gradient(ellipse 50% 50% at 20% 29%, rgba(0,0,0,0.46) 0%, rgba(0,0,0,0.32) 38%, rgba(0,0,0,0.12) 72%, rgba(0,0,0,0) 100%);
     opacity: 0; transition: opacity 0.9s ease;
   }
   #zona:has(.b)::before { opacity: 1; }
@@ -141,7 +141,7 @@
   var NOMBRE_MAXIMO = 25;
   var SALIDA_RAPIDA_MS = 450;      // lo que tarda en apagarse el más viejo cuando ya hay `max`
   var SILENCIO_MAXIMO_MS = 45000;  // sin un latido en este tiempo, la conexión se da por muerta
-  var DISENO = { izquierda: 22, arriba: 22, ancho: 280, alto: 237, salto: 8, subida: 250, hueco: 4 };
+  var DISENO = { izquierda: 10, arriba: 22, ancho: 280, alto: 139, salto: 8, subida: 150, hueco: 4 };
   var DESPLAZAMIENTOS = [0, 46, 12, 60, 20, 40];  // las x del diseño, para que no queden en fila india
 
   /** El color del nombre: moderador (y el dueño) verde, VIP naranja, suscriptor morado, el resto blanco azulado. */
@@ -177,7 +177,7 @@
   }
 
   // ── El tiempo de una burbuja (los fotogramas clave del diseño) ─────────────
-  // 0 %: invisible y un poco chica · 6 %: entra con un saltito (8 px) · 72 %: empieza a apagarse · 100 %: arriba (250 px), apagada.
+  // 0 %: invisible y un poco chica · 6 %: entra con un saltito (8 px) · 72 %: empieza a apagarse · 100 %: arriba (150 px), apagada.
   function bezier(x1, y1, x2, y2) {
     function a(p1, p2) { return 1 - 3 * p2 + 3 * p1; }
     function b(p1, p2) { return 3 * p2 - 6 * p1; }
