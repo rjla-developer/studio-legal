@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- «Ahorita regreso» en OBS (13-oct-2026): la escena de pausa del en vivo, opción B «Tu personaje + cristal».
+     Un solo archivo para una fuente de navegador de OBS. Sin sonido de ningún tipo (Kick silencia los VODs con música con derechos),
+     sin llamadas de red (default-src 'none': ni conexiones, ni fuentes, ni audio) y sin llaves. Las imágenes son del mismo sitio.
+     El título «Ahorita regreso» es una IMAGEN: la letra DK Attaboy es de licencia y su archivo no se sube al sitio público.
+     Ver docs/AHORITA-REGRESO-EN-OBS.md. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fRkBzIEFMRVgEDkwbqYjnteIYdfNXFBR9JzsDewtLvk='; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Ahorita regreso · Melies</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #120C0E; overflow: hidden; }
+  body {
+    --u: 2; --dx: 0px; --dy: 0px;
+    width: 100vw; height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* El diseño aprobado mide 960 × 540. Se dibuja a ese tamaño y se escala (--u = ancho de la pantalla / 960: 2 en 1920 × 1080). */
+  #escena {
+    position: absolute; left: 0; top: 0; width: 960px; height: 540px; overflow: hidden;
+    background: #120C0E; transform-origin: 0 0; transform: translate(var(--dx), var(--dy)) scale(var(--u));
+  }
+  #escena > * { box-sizing: border-box; }
+
+  @keyframes mueve1 { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(90px, 50px) scale(1.18) } }
+  @keyframes mueve2 { 0%, 100% { transform: translate(0, 0) scale(1.1) } 50% { transform: translate(-110px, -40px) scale(0.92) } }
+  @keyframes mueve3 { 0%, 100% { transform: translate(0, 0) scale(1) } 50% { transform: translate(-60px, 70px) scale(1.2) } }
+  @keyframes sube { 0% { opacity: 0; transform: translateY(0) scale(.9) } 12% { opacity: .9 } 80% { opacity: .5 } 100% { opacity: 0; transform: translateY(-560px) scale(1.05) } }
+  @keyframes pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,113,49,0.6) } 50% { box-shadow: 0 0 0 14px rgba(214,113,49,0) } }
+  @keyframes frase { 0% { opacity: 0; transform: translateY(10px) } 6% { opacity: 1; transform: translateY(0) } 30% { opacity: 1; transform: translateY(0) } 36% { opacity: 0; transform: translateY(-10px) } 100% { opacity: 0 } }
+  @keyframes brillo { 0% { transform: translateX(-120%) } 100% { transform: translateX(420%) } }
+  @keyframes entra { 0% { opacity: 0; transform: translateY(20px) scale(.97) } 100% { opacity: 1; transform: translateY(0) scale(1) } }
+  @keyframes respira { 0%, 100% { transform: scaleY(1) scaleX(1) } 50% { transform: scaleY(1.012) scaleX(0.996) } }
+  @keyframes cabeza { 0% { transform: rotate(-2deg) translateY(0) } 50% { transform: rotate(2.2deg) translateY(-4px) } 100% { transform: rotate(-2deg) translateY(0) } }
+  @keyframes parp { 0%, 90%, 100% { transform: scaleY(0) } 93%, 95% { transform: scaleY(1) } }
+  @keyframes salta { 0%, 76%, 100% { transform: translateY(0) scale(1, 1) } 80% { transform: translateY(0) scale(1.06, 0.93) } 86% { transform: translateY(-34px) scale(0.97, 1.05) } 92% { transform: translateY(0) scale(1.07, 0.92) } 96% { transform: translateY(0) scale(0.99, 1.01) } }
+
+  .aurora { position: absolute; border-radius: 50%; will-change: transform; }
+  .a1 { left: 480px; top: 60px; width: 560px; height: 480px; background: radial-gradient(circle, rgba(214,113,49,0.95) 0%, rgba(214,113,49,0) 68%); filter: blur(24px); animation: mueve1 14s ease-in-out infinite; }
+  .a2 { left: 300px; top: -100px; width: 560px; height: 440px; background: radial-gradient(circle, rgba(201,69,106,0.7) 0%, rgba(201,69,106,0) 68%); filter: blur(28px); animation: mueve2 17s ease-in-out infinite; }
+  .a3 { left: -80px; top: 280px; width: 460px; height: 360px; background: radial-gradient(circle, rgba(47,143,157,0.6) 0%, rgba(47,143,157,0) 68%); filter: blur(26px); animation: mueve3 12s ease-in-out infinite; }
+  .velo { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(18,12,14,0.28); }
+
+  .sube {
+    position: absolute; border-radius: 50%; will-change: transform, opacity;
+    background: linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.06)); border: 1px solid rgba(255,255,255,0.4);
+    animation: sube 14s ease-in infinite both;
+  }
+
+  .tarjeta {
+    position: absolute; left: 52px; top: 160px; width: 560px; height: 250px; border-radius: 34px 34px 34px 8px; overflow: hidden;
+    background: linear-gradient(135deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.07) 55%, rgba(255,255,255,0.15) 100%), rgba(18,12,14,0.18);
+    border: 1.5px solid rgba(255,255,255,0.42);
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.55), 0 30px 80px rgba(0,0,0,0.45);
+    animation: entra 1.2s .1s ease-out both;
+  }
+  .encabezado { position: absolute; left: 40px; top: 32px; display: flex; align-items: center; gap: 12px; }
+  .punto { width: 14px; height: 14px; border-radius: 50%; background: #D67131; animation: pulso 2s ease-out infinite; }
+  .enpausa { font-size: 16px; font-weight: 700; letter-spacing: 0.22em; color: rgba(255,255,255,0.85); }
+  /* El título es una imagen (la letra DK Attaboy no se publica): 1994 × 254 px = 498.5 × 63.5 unidades del diseño. */
+  .titulo { position: absolute; left: 40px; top: 72px; width: 498.5px; height: 63.5px; filter: drop-shadow(0 3px 7px rgba(0,0,0,0.45)); }
+  .frases { position: absolute; left: 40px; right: 40px; top: 160px; height: 36px; font-size: 25px; font-weight: 600; color: rgba(255,255,255,0.92); text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+  .frase { position: absolute; left: 0; right: 0; top: 0; opacity: 0; animation: frase 12s ease-in-out infinite; }
+  .frase:nth-child(2) { animation-delay: 4s; }
+  .frase:nth-child(3) { animation-delay: 8s; }
+  .barra { position: absolute; left: 40px; right: 40px; bottom: 26px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.18); overflow: hidden; }
+  .brillo { width: 26%; height: 100%; border-radius: 3px; background: linear-gradient(90deg, rgba(214,113,49,0), #F0A66A, rgba(214,113,49,0)); animation: brillo 3.4s ease-in-out infinite; }
+
+  /* El personaje del dueño, asomado delante de la tarjeta. Dos capas (cuerpo y cabeza) para que respire, mueva la cabeza, parpadee y brinque. Va 4 unidades más abajo que en el diseño (56 → 60): en lo alto del brinco el pelo se cortaba con el borde de la pantalla. */
+  .salta { position: absolute; left: 720px; top: 60px; width: 160px; height: 442px; transform-origin: 50% 100%; animation: salta 10s ease-in-out infinite; }
+  .personaje { position: relative; width: 367px; height: 1014px; transform: scale(0.436); transform-origin: 0 0; }
+  .respira { position: absolute; left: 0; top: 0; right: 0; bottom: 0; transform-origin: 50% 100%; animation: respira 3.6s ease-in-out infinite; }
+  .cuerpo { position: absolute; left: 0; top: 150px; width: 367px; height: 864px; }
+  .cabeza { position: absolute; left: 0; top: 0; width: 367px; height: 186px; transform-origin: 183px 172px; animation: cabeza 5s ease-in-out infinite; }
+  .cara { position: absolute; left: 0; top: 0; width: 367px; height: 186px; }
+  .parp { transform: scaleY(0); animation: parp 5.5s ease-in-out infinite; }  /* el párpado: abierto (scaleY 0) salvo cuando parpadea */
+
+  .firma { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; font-size: 14px; font-weight: 700; letter-spacing: 0.2em; color: rgba(255,255,255,0.55); }
+
+  /* Sin movimiento (?movimiento=0): todo quieto y a la vista, para probar y sacar pantallazos. */
+  body.quieto #escena *, body.quieto #escena { animation: none !important; }
+  body.quieto .frase:nth-child(1) { opacity: 1; }
+  body.quieto .sube { opacity: 0.5; transform: translateY(var(--reposo, -200px)); }
+</style>
+</head>
+<body>
+<div id="escena">
+  <!-- auroras: la naranja queda detrás del personaje para que su ropa negra se distinga -->
+  <div class="aurora a1"></div>
+  <div class="aurora a2"></div>
+  <div class="aurora a3"></div>
+  <div class="velo"></div>
+
+  <div id="burbujitas"></div>
+
+  <!-- la esquina de arriba a la izquierda queda libre: ahí vive la fuente «Chat de Kick», encima de todo -->
+  <div class="tarjeta">
+    <div class="encabezado"><div class="punto"></div><div class="enpausa">EN PAUSA</div></div>
+    <img class="titulo" src="titulo-ahorita-regreso.png" alt="Ahorita regreso">
+    <div class="frases" id="frases">
+      <div class="frase">Fui por un café</div>
+      <div class="frase">Ya casi regreso</div>
+      <div class="frase">Mientras tanto, platica en el chat</div>
+    </div>
+    <div class="barra"><div class="brillo"></div></div>
+  </div>
+
+  <div class="salta">
+    <div class="personaje">
+      <div class="respira">
+        <img class="cuerpo" src="personaje-cuerpo.png" alt="">
+        <div class="cabeza">
+          <img class="cara" src="personaje-cabeza.png" alt="Tu personaje sonriendo">
+          <svg width="367" height="186" viewBox="0 0 367 186" style="position:absolute;left:0;top:0" aria-hidden="true">
+            <g class="parp" style="transform-origin:150px 75px"><ellipse cx="150" cy="91" rx="21" ry="16" fill="#FDD5AC"/><path d="M131 93 Q150 103 169 93" fill="none" stroke="#1A1210" stroke-width="3.5" stroke-linecap="round"/></g>
+            <g class="parp" style="transform-origin:199px 73px"><ellipse cx="199" cy="89" rx="21" ry="16" fill="#FDD5AC"/><path d="M180 91 Q199 101 218 91" fill="none" stroke="#1A1210" stroke-width="3.5" stroke-linecap="round"/></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="firma">@RJDESCUBRE · EN KICK</div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  // ── Opciones (por la dirección) ────────────────────────────────────────────
+  // modo=senal    para el IRL: las frases dicen «Se cayó la señal», «Ya vuelvo», «No se vayan»
+  // movimiento=0  sin animación (todo quieto): para probar y sacar pantallazos
+  var CFG = window.AhoritaRegresoConfig || {};
+  var parametros = new URLSearchParams(typeof CFG.busqueda === 'string' ? CFG.busqueda : location.search);
+
+  var FRASES = {
+    normal: ['Fui por un café', 'Ya casi regreso', 'Mientras tanto, platica en el chat'],
+    senal: ['Se cayó la señal', 'Ya vuelvo', 'No se vayan']
+  };
+  var op = {
+    modo: parametros.get('modo') === 'senal' ? 'senal' : 'normal',
+    movimiento: parametros.get('movimiento') !== '0'
+  };
+
+  // Las frases: las del diseño ya están en la página; con modo=senal se cambian el texto (siempre como texto, nunca como HTML).
+  var frases = document.getElementById('frases').children;
+  for (var i = 0; i < frases.length; i++) frases[i].textContent = FRASES[op.modo][i];
+
+  // Las burbujitas de cristal que suben (las mismas 10 del diseño: semilla fija, así siempre salen igual).
+  var s = 11;
+  function al() { s = (s * 16807) % 2147483647; return s / 2147483647; }
+  var contenedor = document.getElementById('burbujitas');
+  for (var n = 0; n < 10; n++) {
+    var d = 18 + al() * 46;
+    var b = document.createElement('div');
+    b.className = 'sube';
+    b.style.left = (al() * 92 + 2).toFixed(1) + '%';
+    b.style.top = '520px';
+    b.style.width = d.toFixed(0) + 'px';
+    b.style.height = d.toFixed(0) + 'px';
+    b.style.animationDelay = '-' + (al() * 14).toFixed(2) + 's';
+    b.style.animationDuration = (10 + al() * 8).toFixed(1) + 's';
+    b.style.setProperty('--reposo', '-' + (60 + (n * 47) % 400) + 'px');
+    contenedor.appendChild(b);
+  }
+
+  if (!op.movimiento) document.body.classList.add('quieto');
+
+  // El tamaño: el diseño es de 960 × 540; en 1920 × 1080 se escala 2×, y si el lienzo no es 16:9 se centra.
+  function ajustarTamano() {
+    var w = window.innerWidth || 1920, h = window.innerHeight || 1080;
+    var u = Math.min(w / 960, h / 540);
+    document.body.style.setProperty('--u', String(u));
+    document.body.style.setProperty('--dx', ((w - 960 * u) / 2).toFixed(1) + 'px');
+    document.body.style.setProperty('--dy', ((h - 540 * u) / 2).toFixed(1) + 'px');
+  }
+  ajustarTamano();
+  window.addEventListener('resize', ajustarTamano);
+
+  window.AhoritaRegreso = { opciones: op, frases: FRASES[op.modo], ajustarTamano: ajustarTamano };
+})();
+</script>
+</body>
+</html>
