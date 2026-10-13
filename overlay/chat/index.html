@@ -7,14 +7,14 @@
      Un solo archivo, sin nada de fuera (ni fuentes ni librerías). Lo único que se conecta es el flujo del API
      (connect-src https:, y localhost para probar). La llave va en la dirección (?t=…): no-referrer para que no viaje a ningún lado más.
      Los textos del chat se ponen SIEMPRE con textContent, nunca como HTML. Ver docs/CHAT-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6Qik4kZABjwfbbYthXca93OcviqH2OBO5oYuTaRaEmM='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UWozIxLIKZajGPBGDZIRj8zda7OCa766LziHxe/qKBM='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat emergente · Melies</title>
 <style>
   html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
   body {
-    --u: 2; --e: 0.53; --tinte: 0.1;
+    --u: 2; --e: 0.71; --tinte: 0.1;
     width: 100vw; height: 100vh;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -28,7 +28,7 @@
   /* La zona del chat: arriba a la izquierda. Las burbujas nacen abajo de ella y suben. */
   #zona {
     position: fixed; left: calc(22px * var(--u)); top: calc(22px * var(--u));
-    width: calc(210px * var(--u)); height: calc(178px * var(--u));
+    width: calc(280px * var(--u)); height: calc(237px * var(--u));
     pointer-events: none;
   }
   /* La SOMBRA DE FONDO (13-oct-2026): una mancha suave y oscura detrás de los mensajes y delante de la pantalla, para que se
@@ -88,7 +88,7 @@
 
   // ── Opciones (por la dirección) ────────────────────────────────────────────
   // t        la llave del chat en OBS (de solo ver este flujo)
-  // escala   tamaño de las burbujas (0.53 = el diseño aprobado)
+  // escala   tamaño de las burbujas (0.71 desde el 13-oct-2026: un tercio más grandes que el 0.53 aprobado, porque en el celular no se alcanzaban a ver)
   // seg      segundos que dura cada mensaje (20)
   // max      cuántos a la vez como mucho (10); el más viejo se apaga rápido
   // bots     nombres extra que no salen, separados por comas
@@ -123,7 +123,7 @@
   var op = {
     llave: (parametros.get('t') || '').trim(),
     api: apiDe(parametros.get('api')) || 'https://studio-dev.leviath4n.net/api',
-    escala: numero('escala', 0.53, 0.2, 2),
+    escala: numero('escala', 0.71, 0.2, 2),
     seg: numero('seg', 20, 5, 120),
     max: Math.round(numero('max', 10, 1, 30)),
     bots: nombresDeBots(parametros.get('bots')),
@@ -141,7 +141,7 @@
   var NOMBRE_MAXIMO = 25;
   var SALIDA_RAPIDA_MS = 450;      // lo que tarda en apagarse el más viejo cuando ya hay `max`
   var SILENCIO_MAXIMO_MS = 45000;  // sin un latido en este tiempo, la conexión se da por muerta
-  var DISENO = { izquierda: 22, arriba: 22, ancho: 210, alto: 178, salto: 8, subida: 190, hueco: 4 };
+  var DISENO = { izquierda: 22, arriba: 22, ancho: 280, alto: 237, salto: 8, subida: 250, hueco: 4 };
   var DESPLAZAMIENTOS = [0, 46, 12, 60, 20, 40];  // las x del diseño, para que no queden en fila india
 
   /** El color del nombre: moderador (y el dueño) verde, VIP naranja, suscriptor morado, el resto blanco azulado. */
@@ -177,7 +177,7 @@
   }
 
   // ── El tiempo de una burbuja (los fotogramas clave del diseño) ─────────────
-  // 0 %: invisible y un poco chica · 6 %: entra con un saltito (8 px) · 72 %: empieza a apagarse · 100 %: arriba (190 px), apagada.
+  // 0 %: invisible y un poco chica · 6 %: entra con un saltito (8 px) · 72 %: empieza a apagarse · 100 %: arriba (250 px), apagada.
   function bezier(x1, y1, x2, y2) {
     function a(p1, p2) { return 1 - 3 * p2 + 3 * p1; }
     function b(p1, p2) { return 3 * p2 - 6 * p1; }
