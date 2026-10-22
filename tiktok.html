@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Melies and TikTok</title>
+<meta name="description" content="How the Melies iPhone app connects a TikTok account and posts a video with TikTok's Content Posting API.">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+</head>
+<body>
+<header>
+  <a class="brand" href="en/"><img src="assets/melies-icon-120.png" alt="" width="36" height="36"><b>Meli<span>e</span>s</b></a>
+  <nav>
+    <a href="tiktok.html" aria-current="page">Melies and TikTok</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="data-deletion.html">Data deletion</a>
+  </nav>
+</header>
+<main>
+<h1>Melies and TikTok</h1>
+<p class="meta">How the Melies iPhone app connects your TikTok account and posts a video for you.</p>
+
+<div class="card">
+<p><strong>Melies is an iPhone app</strong> for video creators (iOS 17 or later). Today it is distributed through
+Apple's TestFlight while we prepare the App Store release; to get access, write to
+<a href="mailto:contacto@meliesapp.com">contacto@meliesapp.com</a>. This website, meliesapp.com, is the official site
+of the app: it hosts our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>, and the
+TikTok sign-in returns to the app through our server. The app's interface is in Spanish.</p>
+</div>
+
+<h2>1. Connect your TikTok account (Login Kit)</h2>
+<p>In the app: <em>Más › Configuración › Redes sociales › TikTok › Conectar</em> (More › Settings › Social networks ›
+TikTok › Connect). TikTok's own authorization page opens with the name <strong>Melies</strong> and the permissions we
+request:</p>
+<ul>
+  <li><code>user.info.basic</code> — your open ID, display name and avatar, only to show which account is connected and
+  where a video will be posted.</li>
+  <li><code>video.publish</code> — to post a video you approved, with the settings you chose, to your profile.</li>
+</ul>
+<p>You can disconnect at any time in the same screen, or remove Melies in the TikTok app (Settings and privacy ›
+Security › Manage app permissions).</p>
+
+<h2>2. The “Post to TikTok” screen</h2>
+<p>When you schedule or post a video, Melies asks TikTok for your current creator information every time the screen
+opens, and shows:</p>
+<ul>
+  <li>The <strong>nickname, @username and avatar</strong> of the TikTok account the video will be posted to.</li>
+  <li>A <strong>preview</strong> of the video and the <strong>caption</strong>, which you can edit (including hashtags).</li>
+  <li><strong>Who can view this video</strong>: only the options TikTok returns for your account, with
+  <strong>nothing selected by default</strong>. You cannot post until you choose one.</li>
+  <li><strong>Allow comments, Duet and Stitch</strong>: all off by default. If you turned one off in your TikTok settings,
+  it is greyed out.</li>
+  <li><strong>Commercial content disclosure</strong>: off by default. Turned on, you choose “Your brand” (labeled
+  “Promotional content”) and/or “Branded content” (labeled “Paid partnership”); you cannot post until you choose at
+  least one. Branded content can only be visible to everyone or to friends, never “Only me”.</li>
+  <li>Your video's <strong>length</strong> against the maximum TikTok allows your account; a longer video cannot be
+  posted.</li>
+  <li>The declaration, right before the button that sends the video: “By posting, you agree to TikTok's
+  <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en">Music Usage Confirmation</a>” (and the
+  <a href="https://www.tiktok.com/legal/page/global/bc-policy/en">Branded Content Policy</a> when it applies).</li>
+</ul>
+<p>If TikTok says your account cannot post right now (for example, the daily limit), Melies stops and tells you
+TikTok's reason. Nothing is sent to TikTok until you confirm.</p>
+
+<h2>3. After you confirm</h2>
+<ul>
+  <li>Melies uploads the exact video you rendered on your iPhone (no watermarks, no logos, no promotional content added)
+  with the caption and settings you chose, using TikTok's Content Posting API (Direct Post, file upload).</li>
+  <li>We tell you that TikTok may take a few minutes to process the video before it appears on your profile, and we
+  check its status with TikTok until it is published or fails. The result, with the link when TikTok gives one,
+  appears in the app's Agenda › History.</li>
+  <li>A scheduled video waits on our server only until it is posted, and is deleted right after (48 hours at most).
+  See the <a href="privacy.html">Privacy Policy</a>.</li>
+</ul>
+
+<h2>Contact</h2>
+<p><a href="mailto:contacto@meliesapp.com">contacto@meliesapp.com</a></p>
+</main>
+<footer>
+  <p>Melies · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="data-deletion.html">Data deletion</a> ·
+  <a href="mailto:contacto@meliesapp.com">contacto@meliesapp.com</a></p>
+  <p>TikTok is a trademark of its owner. Melies is not affiliated with or endorsed by TikTok.</p>
+</footer>
+</body>
+</html>
