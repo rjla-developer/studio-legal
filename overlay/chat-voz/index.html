@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- El chat en voz alta (29-oct-2026): lee en voz alta cada mensaje del chat de Kick con la voz del NAVEGADOR (speechSynthesis).
+     Se abre en el navegador de la PC del dueño, NO como fuente de OBS: el público no debe oírla. Un solo archivo, sin nada de fuera.
+     Lo único que se conecta es el flujo del API (el MISMO del chat en OBS, con su llave de solo ver en ?t=…). Ni audio ni texto se guardan:
+     solo los ajustes, en este navegador (localStorage). Los textos del chat se ponen SIEMPRE con textContent. Ver docs/CHAT-EN-VOZ-ALTA.md. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f/lIYL762jdZVjPccksxi8cwnE0J/TlYxC2afDul3cE='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Chat en voz alta · Melies</title>
+<style>
+  :root { color-scheme: dark; --fondo: #120C0E; --panel: #1D1417; --linea: #3A2A2E; --acento: #D67131; --texto: #F3E9E4; --suave: #B7A59E; --ok: #6FD18A; --aviso: #E3B04B; --mal: #E05A4F; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--fondo); color: var(--texto); }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height: 1.4; padding: 16px; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--suave); font-size: 13px; margin: 0 0 14px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--linea); font-size: 13px; }
+  .chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--suave); display: inline-block; }
+  .chip.ok i { background: var(--ok); } .chip.espera i { background: var(--aviso); } .chip.mal i { background: var(--mal); }
+  #motivo { font-size: 13px; color: var(--suave); min-height: 18px; margin: 0 0 12px; }
+  #motivo.mal { color: var(--mal); }
+  button { font: inherit; color: var(--texto); background: var(--panel); border: 1px solid var(--linea); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  button:hover { border-color: var(--acento); }
+  button.principal { background: var(--acento); border-color: var(--acento); color: #1a0f08; font-weight: 700; font-size: 16px; padding: 12px 20px; }
+  button[hidden] { display: none; }
+  fieldset { border: 1px solid var(--linea); border-radius: 10px; margin: 0 0 12px; padding: 10px 12px 12px; background: var(--panel); }
+  legend { color: var(--acento); font-size: 13px; font-weight: 700; padding: 0 6px; }
+  label { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; }
+  label span.nom { min-width: 170px; }
+  label output { min-width: 56px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  input[type=range] { flex: 1; accent-color: var(--acento); }
+  input[type=number], input[type=text], select, textarea { font: inherit; color: var(--texto); background: var(--fondo); border: 1px solid var(--linea); border-radius: 6px; padding: 5px 8px; }
+  select, textarea, input[type=text] { flex: 1; min-width: 0; }
+  input[type=checkbox], input[type=radio] { accent-color: var(--acento); width: 16px; height: 16px; }
+  .nota { font-size: 12px; color: var(--suave); margin: 4px 0 0; }
+  .nota.aviso { color: var(--aviso); }
+  #ultimo { font-size: 15px; min-height: 22px; padding: 8px 10px; border-left: 3px solid var(--acento); background: var(--panel); border-radius: 4px; margin-bottom: 12px; word-break: break-word; }
+  #cola { color: var(--suave); font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>El chat en voz alta</h1>
+<p class="sub">Escucha lo que dice el chat de Kick sin leerlo. Ábrela en el navegador de esta PC, <strong>no</strong> como fuente de OBS: así el público no la oye.</p>
+
+<div class="fila">
+  <span class="chip espera" id="chipConexion"><i></i><span id="textoConexion">Conectando…</span></span>
+  <span class="chip espera" id="chipVoz"><i></i><span id="textoVoz">Voz bloqueada</span></span>
+  <span id="cola"></span>
+</div>
+<p id="motivo"></p>
+
+<div class="fila">
+  <button class="principal" id="activar" type="button">Activar voz</button>
+  <button id="silenciar" type="button">Silenciar</button>
+  <button id="saltar" type="button">Saltar este</button>
+  <button id="probar" type="button">Probar voz</button>
+</div>
+<div id="ultimo" aria-live="polite">Aún no he leído nada.</div>
+
+<fieldset><legend>Sonido</legend>
+  <label><span class="nom">Volumen</span><input type="range" id="volumen" min="0" max="1" step="0.05"><output id="volumenV"></output></label>
+  <label><span class="nom">Velocidad</span><input type="range" id="velocidad" min="0.5" max="2" step="0.1"><output id="velocidadV"></output></label>
+  <label><span class="nom">Voz</span><select id="voz"></select></label>
+  <p class="nota" id="notaVoces"></p>
+</fieldset>
+
+<fieldset><legend>Qué leer</legend>
+  <label><input type="radio" name="filtro" value="todos"> Todos los mensajes</label>
+  <label><input type="radio" name="filtro" value="eventos"> Solo donaciones y suscripciones</label>
+  <p class="nota aviso">Hoy el flujo del chat solo trae mensajes, no avisos de donación ni de suscripción: con este filtro no sonará nada hasta que el servidor los mande.</p>
+  <label><input type="radio" name="filtro" value="privilegiados"> Solo moderadores y suscriptores</label>
+  <label><input type="radio" name="filtro" value="lista"> Solo estos usuarios</label>
+  <label><span class="nom">Usuarios (coma o renglón)</span><textarea id="lista" rows="2" placeholder="luna_, tavo92"></textarea></label>
+</fieldset>
+
+<fieldset><legend>Recortes</legend>
+  <label><span class="nom">Largo máximo (letras)</span><input type="number" id="largo" min="20" max="300" step="10"></label>
+  <label><input type="checkbox" id="enlaces"> Saltar enlaces</label>
+  <label><input type="checkbox" id="emojis"> Saltar emojis y emotes</label>
+  <label><input type="checkbox" id="bots"> No leer bots ni comandos (!, /)</label>
+  <label><input type="checkbox" id="nombre"> Decir el nombre («Fulano dice: …»)</label>
+</fieldset>
+
+<fieldset><legend>Cola</legend>
+  <label><span class="nom">Mensajes esperando como mucho</span><input type="number" id="tope" min="1" max="30" step="1"></label>
+  <p class="nota">Si llegan más de los que se alcanzan a leer, se descartan los más viejos para no ir atrasado.</p>
+</fieldset>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Opciones de la dirección ───────────────────────────────────────────────
+  // t        la llave de solo ver el chat (la misma del chat en OBS)
+  // api      a qué servidor se conecta (https; por omisión el de Melies)
+  var CFG = window.ChatVozConfig || {};
+  var parametros = new URLSearchParams(typeof CFG.busqueda === 'string' ? CFG.busqueda : location.search);
+  var reloj = typeof CFG.reloj === 'function' ? CFG.reloj : function () { return Date.now(); };
+
+  function apiDe(texto) {
+    if (!texto) return null;
+    try {
+      var u = new URL(texto);
+      if (u.protocol !== 'https:' && !(u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1'))) return null;
+      return u.href.replace(/\/+$/, '');
+    } catch (e) { return null; }
+  }
+  var op = {
+    llave: (parametros.get('t') || '').trim(),
+    api: apiDe(parametros.get('api')) || 'https://studio-dev.leviath4n.net/api'
+  };
+
+  // ── Las reglas ─────────────────────────────────────────────────────────────
+  var BOTS = ['melies', 'meliesapp', 'meliesbot', 'botrix', 'nightbot', 'kickbot', 'streamelements', 'fossabot',
+    'moobot', 'streamlabs', 'sery_bot', 'wizebot', 'kicklet', 'blerp'];
+  var SILENCIO_MAXIMO_MS = 45000;   // sin un latido en este tiempo, la conexión se da por muerta (como la del chat en OBS)
+  var EDAD_MAXIMA_MS = 10000;       // lo que llega con más de 10 s ya no se lee (al reconectar el servidor repite los últimos 20 s)
+  var LIMITES = { volumen: [0, 1], velocidad: [0.5, 2], largo: [20, 300], tope: [1, 30] };
+  var FILTROS = ['todos', 'eventos', 'privilegiados', 'lista'];
+  var TIPOS_DE_EVENTO = ['donacion', 'suscripcion', 'regalo', 'propina'];
+  var INSIGNIAS_QUE_PASAN = ['moderador', 'transmisor', 'suscriptor'];
+  var POR_OMISION = {
+    silenciado: false, volumen: 1, velocidad: 1, voz: '', filtro: 'todos', lista: '',
+    largo: 140, enlaces: true, emojis: true, bots: true, nombre: true, tope: 5
+  };
+  var CLAVE = 'melies-chat-en-voz-alta';
+
+  function acotar(v, min, max, porOmision) {
+    var n = typeof v === 'number' ? v : parseFloat(v);
+    if (!isFinite(n)) return porOmision;
+    return Math.min(max, Math.max(min, n));
+  }
+  /** Ajustes válidos: lo que venga raro (guardado a mano, de otra versión) vuelve a su valor de fábrica. */
+  function sanear(a) {
+    a = a && typeof a === 'object' ? a : {};
+    var o = {};
+    o.silenciado = a.silenciado === true;
+    o.volumen = acotar(a.volumen, LIMITES.volumen[0], LIMITES.volumen[1], POR_OMISION.volumen);
+    o.velocidad = acotar(a.velocidad, LIMITES.velocidad[0], LIMITES.velocidad[1], POR_OMISION.velocidad);
+    o.voz = typeof a.voz === 'string' ? a.voz.slice(0, 200) : '';
+    o.filtro = FILTROS.indexOf(a.filtro) >= 0 ? a.filtro : POR_OMISION.filtro;
+    o.lista = typeof a.lista === 'string' ? a.lista.slice(0, 2000) : '';
+    o.largo = Math.round(acotar(a.largo, LIMITES.largo[0], LIMITES.largo[1], POR_OMISION.largo));
+    o.enlaces = a.enlaces === undefined ? POR_OMISION.enlaces : a.enlaces === true;
+    o.emojis = a.emojis === undefined ? POR_OMISION.emojis : a.emojis === true;
+    o.bots = a.bots === undefined ? POR_OMISION.bots : a.bots === true;
+    o.nombre = a.nombre === undefined ? POR_OMISION.nombre : a.nombre === true;
+    o.tope = Math.round(acotar(a.tope, LIMITES.tope[0], LIMITES.tope[1], POR_OMISION.tope));
+    return o;
+  }
+
+  // Lo guardado en este navegador (nada más; nunca la llave). Todo con try/catch: sin localStorage la página sigue.
+  function almacen() {
+    if (CFG.almacen) return CFG.almacen;
+    try { return window.localStorage; } catch (e) { return null; }
+  }
+  function leerGuardado() {
+    try {
+      var a = almacen();
+      var t = a && a.getItem(CLAVE);
+      return t ? JSON.parse(t) : null;
+    } catch (e) { return null; }
+  }
+  function guardar() {
+    try {
+      var a = almacen();
+      if (a) a.setItem(CLAVE, JSON.stringify(aj));
+    } catch (e) { /* sin almacenamiento: los ajustes duran lo que dure la pestaña */ }
+  }
+  var aj = sanear(leerGuardado());
+
+  // ── Qué se dice de un mensaje ──────────────────────────────────────────────
+  var RE_EMOTE = /\[emote:\d+:([^\]]{1,60})\]/g;
+  var RE_ENLACE = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|tv|gg|me|mx|co|es|ly|app|dev|xyz|info|live|stream|to|be)\b(?:\/\S*)?/gi;
+  var RE_EMOJI = /[\p{Extended_Pictographic}‍️\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}]/gu;
+
+  function usuariosDeLaLista(texto) {
+    return String(texto || '').split(/[,\n;]+/).map(function (s) { return s.trim().replace(/^@/, '').toLowerCase(); })
+      .filter(function (s) { return s.length > 0; }).slice(0, 100);
+  }
+  function esEvento(m) {
+    return TIPOS_DE_EVENTO.indexOf(String(m && m.tipo || '').toLowerCase()) >= 0;
+  }
+  /** ¿Este mensaje pasa el filtro «qué leer»? */
+  function pasaElFiltro(m) {
+    if (aj.filtro === 'todos') return true;
+    if (aj.filtro === 'eventos') return esEvento(m);
+    if (aj.filtro === 'privilegiados') {
+      var ins = Array.isArray(m.insignias) ? m.insignias : [];
+      for (var i = 0; i < INSIGNIAS_QUE_PASAN.length; i++) if (ins.indexOf(INSIGNIAS_QUE_PASAN[i]) >= 0) return true;
+      return false;
+    }
+    var n = String(m.nombre || '').trim().toLowerCase();
+    return usuariosDeLaLista(aj.lista).indexOf(n) >= 0;
+  }
+  /** El texto, ya recortado según los ajustes. Vacío = no hay nada que leer. */
+  function limpiarTexto(texto) {
+    var t = String(texto == null ? '' : texto);
+    t = aj.emojis ? t.replace(RE_EMOTE, ' ').replace(RE_EMOJI, ' ') : t.replace(RE_EMOTE, '$1');
+    if (aj.enlaces) t = t.replace(RE_ENLACE, ' ');
+    t = t.replace(/\s+/g, ' ').trim();
+    return t.length > aj.largo ? t.slice(0, aj.largo).trimEnd() : t;
+  }
+  function nombreHablado(nombre) {
+    return String(nombre == null ? '' : nombre).replace(/[_.\-]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Alguien';
+  }
+  /** Lo que se dice en voz alta de un mensaje, o null si no se lee. */
+  function preparar(m) {
+    if (!m || typeof m !== 'object') return null;
+    var crudo = String(m.texto == null ? '' : m.texto).trim();
+    if (!crudo) return null;
+    if (aj.bots) {
+      if (crudo.charAt(0) === '!' || crudo.charAt(0) === '/') return null;
+      if (BOTS.indexOf(String(m.nombre || '').trim().toLowerCase()) >= 0) return null;
+    }
+    if (!pasaElFiltro(m)) return null;
+    var t = limpiarTexto(crudo);
+    if (!t) return null;
+    return aj.nombre ? nombreHablado(m.nombre) + ' dice: ' + t : t;
+  }
+
+  // ── La voz y la cola ───────────────────────────────────────────────────────
+  var sintesis = CFG.sintesis || window.speechSynthesis || null;
+  var Locucion = CFG.Locucion || window.SpeechSynthesisUtterance || null;
+  var activada = false;        // los navegadores bloquean el audio hasta un clic
+  var cola = [];               // de la más vieja a la más nueva
+  var hablando = false;
+  var actual = null;
+  var vigilante = null;
+  var descartados = 0;
+  var vistos = new Map();
+
+  function vozDisponible() { return !!(sintesis && Locucion); }
+
+  /** Las voces: primero las es-*, luego el resto, cada grupo por nombre. */
+  function ordenarVoces(voces) {
+    var lista = Array.prototype.slice.call(voces || []);
+    function es(v) { return /^es([-_]|$)/i.test(String(v.lang || '')); }
+    lista.sort(function (a, b) {
+      var d = (es(b) ? 1 : 0) - (es(a) ? 1 : 0);
+      return d !== 0 ? d : String(a.name).localeCompare(String(b.name));
+    });
+    return lista;
+  }
+  function vocesOrdenadas() {
+    try { return ordenarVoces(sintesis && sintesis.getVoices ? sintesis.getVoices() : []); } catch (e) { return []; }
+  }
+  /** La voz elegida; sin elegir (o si ya no existe), la primera en español. */
+  function vozElegida() {
+    var voces = vocesOrdenadas();
+    for (var i = 0; i < voces.length; i++) if (aj.voz && voces[i].voiceURI === aj.voz) return voces[i];
+    return voces.length && /^es([-_]|$)/i.test(String(voces[0].lang || '')) ? voces[0] : null;
+  }
+  function locucion(texto) {
+    var u = new Locucion(texto);
+    u.lang = 'es-MX';
+    u.volume = aj.volumen;
+    u.rate = aj.velocidad;
+    var v = vozElegida();
+    if (v) { u.voice = v; u.lang = v.lang || u.lang; }
+    return u;
+  }
+
+  function encolar(texto) {
+    cola.push(texto);
+    while (cola.length > aj.tope) { cola.shift(); descartados++; }
+  }
+  /** Un mensaje del chat → a la cola si se lee. Devuelve si quedó esperando su turno. */
+  function recibir(m) {
+    if (!m || typeof m !== 'object') return false;
+    var id = String(m.id == null ? '' : m.id);
+    if (!id || vistos.has(id)) return false;
+    vistos.set(id, reloj());
+    if (vistos.size > 500) vistos.delete(vistos.keys().next().value);
+    if (aj.silenciado) return false;
+    if ((Number(m.edadMs) || 0) > EDAD_MAXIMA_MS) return false;
+    var texto = preparar(m);
+    if (!texto) return false;
+    encolar(texto);
+    avanzar();
+    return true;
+  }
+
+  function terminarEste() {
+    clearTimeout(vigilante);
+    vigilante = null;
+    actual = null;
+    hablando = false;
+    avanzar();
+  }
+  function avanzar() {
+    if (hablando || aj.silenciado || !activada || !vozDisponible() || !cola.length) { pintarCola(); return; }
+    var texto = cola.shift();
+    hablando = true;
+    pintarUltimo(texto);
+    pintarCola();
+    try {
+      var u = locucion(texto);
+      actual = u;
+      var fin = function () { if (actual === u) terminarEste(); };
+      u.onend = fin;
+      u.onerror = fin;
+      // Algunos navegadores no avisan que terminaron: si pasa el tiempo de sobra, seguimos.
+      clearTimeout(vigilante);
+      vigilante = setTimeout(function () {
+        if (actual !== u) return;
+        try { sintesis.cancel(); } catch (e) { /* nada */ }
+        terminarEste();
+      }, 3000 + (texto.length * 120) / Math.max(0.5, aj.velocidad));
+      sintesis.speak(u);
+    } catch (e) {
+      ponerMotivo('La voz del navegador falló: ' + (e && e.message ? e.message : 'sin detalle') + '.');
+      terminarEste();
+    }
+  }
+  /** «Saltar este»: corta lo que suena y pasa al siguiente. */
+  function saltar() {
+    if (!hablando) return false;
+    actual = null;
+    try { sintesis.cancel(); } catch (e) { /* nada */ }
+    clearTimeout(vigilante);
+    vigilante = null;
+    hablando = false;
+    avanzar();
+    return true;
+  }
+  /** Silenciar corta lo que suena y vacía la cola: al reanudar no se lee lo viejo. */
+  function silenciar(si) {
+    aj.silenciado = si === true;
+    guardar();
+    if (aj.silenciado) {
+      cola = [];
+      var estabaHablando = hablando;
+      actual = null;
+      clearTimeout(vigilante);
+      vigilante = null;
+      hablando = false;
+      if (estabaHablando) { try { sintesis.cancel(); } catch (e) { /* nada */ } }
+    }
+    pintarTodo();
+  }
+  /** El clic que destraba el audio del navegador. Dice una frase corta para comprobar que suena. */
+  function activar() {
+    if (!vozDisponible()) { pintarTodo(); return false; }
+    activada = true;
+    try { sintesis.speak(locucion('Voz activada')); } catch (e) { /* el siguiente mensaje lo intentará */ }
+    pintarTodo();
+    avanzar();
+    return true;
+  }
+  function probar() {
+    if (!vozDisponible()) return false;
+    activada = true;
+    try { sintesis.speak(locucion((aj.nombre ? 'Luna dice: ' : '') + 'Así sonará el chat en voz alta')); } catch (e) { return false; }
+    pintarTodo();
+    return true;
+  }
+  function estadoDeVoz() {
+    if (!vozDisponible()) return 'sin-voz';
+    if (!activada) return 'bloqueada';
+    return aj.silenciado ? 'silenciada' : 'lista';
+  }
+
+  // ── La conexión: la misma del chat en OBS ──────────────────────────────────
+  var estado = 'conectando';
+  var fuente = null;
+  var reintentos = 0;
+  var relojDeReintento = null;
+  var ultimoDato = 0;
+  var motivoTexto = '';
+
+  function direccion(extra) {
+    return op.api + '/overlay/chat/transmision?t=' + encodeURIComponent(op.llave) + (extra || '');
+  }
+  function cerrarFuente() {
+    if (fuente) { try { fuente.close(); } catch (e) { /* ya cerrada */ } fuente = null; }
+  }
+  function ponerEstado(nuevo, motivo) {
+    estado = nuevo;
+    if (nuevo === 'conectado') motivoTexto = '';
+    if (motivo !== undefined) motivoTexto = motivo;
+    pintarTodo();
+  }
+  function conectar() {
+    clearTimeout(relojDeReintento);
+    if (!op.llave) { ponerEstado('sin-llave', 'Falta la llave: abre esta página con la dirección completa, la que termina en ?t=… (ver docs/CHAT-EN-VOZ-ALTA.md).'); return; }
+    var Fuente = CFG.EventSource || window.EventSource;
+    if (!Fuente) { ponerEstado('sin-conexion', 'Este navegador no sabe recibir el chat (sin EventSource).'); return; }
+    cerrarFuente();
+    ponerEstado('conectando', '');
+    ultimoDato = reloj();
+    var esta = new Fuente(direccion(''));
+    fuente = esta;
+    function vivo() { ultimoDato = reloj(); }
+    esta.addEventListener('estado', function () { vivo(); reintentos = 0; ponerEstado('conectado'); });
+    esta.addEventListener('latido', function () { vivo(); if (estado !== 'conectado') ponerEstado('conectado'); });
+    esta.addEventListener('mensaje', function (ev) {
+      vivo();
+      var m = null;
+      try { m = JSON.parse(ev.data); } catch (e) { return; }
+      recibir(m);
+    });
+    esta.addEventListener('aviso', function (ev) {
+      vivo();
+      try { motivoTexto = String(JSON.parse(ev.data).motivo || ''); } catch (e) { /* nada */ }
+      pintarTodo();
+    });
+    esta.onerror = function () {
+      if (fuente !== esta) return;
+      // CERRADA (2): el servidor dijo que no (401, 503…) o no es un flujo → reintentar con espera creciente.
+      // CONECTANDO (0): el navegador ya se está reconectando solo.
+      if (esta.readyState === 2) reintentarLuego();
+      else ponerEstado('conectando');
+    };
+  }
+  function reintentarLuego() {
+    cerrarFuente();
+    var espera = Math.min(30000, 1000 * Math.pow(2, reintentos)) + Math.floor(Math.random() * 500);
+    reintentos = Math.min(reintentos + 1, 10);
+    ponerEstado('sin-conexion');
+    preguntarPorQue();
+    clearTimeout(relojDeReintento);
+    relojDeReintento = setTimeout(conectar, espera);
+    return espera;
+  }
+  /** Al caerse, pregunta al servidor POR QUÉ (llave mala, Kick desconectado…) y lo escribe. */
+  function preguntarPorQue() {
+    if (!window.fetch || !op.llave || CFG.sinArrancar) return;
+    window.fetch(direccion('&comprobar=1'), { cache: 'no-store', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.json().catch(function () { return { message: 'El servidor contestó ' + r.status + '.' }; }); })
+      .then(function (j) {
+        if (estado === 'conectado') return;
+        motivoTexto = j && j.ok
+          ? (j.chat && !j.chat.suscrito ? 'Kick no manda el chat: ' + (j.chat.motivo || 'sin motivo') : '')
+          : String((j && j.message) || 'El servidor no dijo por qué.');
+        pintarTodo();
+      })
+      .catch(function () { motivoTexto = 'No llego al servidor del chat (' + op.api + '). Reintento solo.'; pintarTodo(); });
+  }
+  function vigilar() {
+    if (fuente && estado !== 'sin-conexion' && reloj() - ultimoDato > SILENCIO_MAXIMO_MS) reintentarLuego();
+  }
+
+  // ── La pantalla ────────────────────────────────────────────────────────────
+  function el(id) { return document.getElementById(id); }
+  function ponerMotivo(texto) {
+    motivoTexto = texto;
+    pintarTodo();
+  }
+  function pintarUltimo(texto) { var u = el('ultimo'); if (u) u.textContent = texto; }
+  function pintarCola() {
+    var c = el('cola');
+    if (!c) return;
+    var t = cola.length + ' en cola';
+    if (descartados) t += ' · ' + descartados + ' descartados';
+    c.textContent = t;
+  }
+  var TEXTOS_CONEXION = { conectando: 'Conectando…', conectado: 'Conectado', 'sin-conexion': 'Reconectando…', 'sin-llave': 'Sin llave' };
+  var TEXTOS_VOZ = { bloqueada: 'Voz bloqueada: pulsa «Activar voz»', lista: 'Voz activa', silenciada: 'Silenciada', 'sin-voz': 'Este navegador no tiene voz' };
+  function pintarTodo() {
+    var cc = el('chipConexion');
+    if (!cc) return;
+    cc.className = 'chip ' + (estado === 'conectado' ? 'ok' : estado === 'sin-llave' ? 'mal' : 'espera');
+    el('textoConexion').textContent = TEXTOS_CONEXION[estado];
+    var v = estadoDeVoz();
+    el('chipVoz').className = 'chip ' + (v === 'lista' ? 'ok' : v === 'sin-voz' ? 'mal' : 'espera');
+    el('textoVoz').textContent = TEXTOS_VOZ[v];
+    el('activar').hidden = v === 'lista' || v === 'silenciada';
+    el('silenciar').textContent = aj.silenciado ? 'Reanudar' : 'Silenciar';
+    var m = el('motivo');
+    var texto = motivoTexto;
+    if (!texto && v === 'sin-voz') texto = 'Este navegador no trae voz (speechSynthesis). Usa Chrome o Edge en la PC.';
+    m.textContent = texto;
+    m.className = estado === 'sin-llave' || v === 'sin-voz' ? 'mal' : '';
+    pintarCola();
+  }
+  function pintarVoces() {
+    var s = el('voz');
+    if (!s) return;
+    var voces = vocesOrdenadas();
+    while (s.firstChild) s.removeChild(s.firstChild);
+    var auto = document.createElement('option');
+    auto.value = '';
+    auto.textContent = 'Automática (primera en español)';
+    s.appendChild(auto);
+    voces.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v.voiceURI;
+      o.textContent = v.name + ' (' + v.lang + ')';
+      s.appendChild(o);
+    });
+    s.value = aj.voz;
+    var hayEs = voces.some(function (v) { return /^es([-_]|$)/i.test(String(v.lang || '')); });
+    el('notaVoces').textContent = !voces.length ? 'El navegador aún no da su lista de voces (si sigue vacía, instala una voz en español en Windows: Configuración › Hora e idioma › Voz).'
+      : hayEs ? '' : 'No hay voces en español: se usará la de siempre del navegador. En Windows se agregan en Configuración › Hora e idioma › Voz.';
+  }
+  function pintarAjustes() {
+    if (!el('volumen')) return;
+    el('volumen').value = aj.volumen; el('volumenV').textContent = Math.round(aj.volumen * 100) + ' %';
+    el('velocidad').value = aj.velocidad; el('velocidadV').textContent = aj.velocidad.toFixed(1) + '×';
+    var radios = document.getElementsByName('filtro');
+    for (var i = 0; i < radios.length; i++) radios[i].checked = radios[i].value === aj.filtro;
+    el('lista').value = aj.lista; el('largo').value = aj.largo; el('tope').value = aj.tope;
+    el('enlaces').checked = aj.enlaces; el('emojis').checked = aj.emojis; el('bots').checked = aj.bots; el('nombre').checked = aj.nombre;
+    pintarVoces();
+  }
+  /** Cambia uno o varios ajustes (siempre pasan por `sanear`), los guarda y repinta. */
+  function cambiar(cambios) {
+    var nuevo = {};
+    for (var k in aj) nuevo[k] = aj[k];
+    for (var c in cambios) nuevo[c] = cambios[c];
+    aj = sanear(nuevo);
+    guardar();
+    while (cola.length > aj.tope) { cola.shift(); descartados++; }
+    pintarAjustes();
+    pintarTodo();
+    return aj;
+  }
+  function conectarControles() {
+    if (!el('activar')) return;
+    el('activar').addEventListener('click', activar);
+    el('silenciar').addEventListener('click', function () { silenciar(!aj.silenciado); });
+    el('saltar').addEventListener('click', saltar);
+    el('probar').addEventListener('click', probar);
+    el('volumen').addEventListener('input', function () { cambiar({ volumen: this.value }); });
+    el('velocidad').addEventListener('input', function () { cambiar({ velocidad: this.value }); });
+    el('voz').addEventListener('change', function () { cambiar({ voz: this.value }); });
+    var radios = document.getElementsByName('filtro');
+    for (var i = 0; i < radios.length; i++) radios[i].addEventListener('change', function () { if (this.checked) cambiar({ filtro: this.value }); });
+    el('lista').addEventListener('input', function () { cambiar({ lista: this.value }); });
+    el('largo').addEventListener('change', function () { cambiar({ largo: this.value }); });
+    el('tope').addEventListener('change', function () { cambiar({ tope: this.value }); });
+    ['enlaces', 'emojis', 'bots', 'nombre'].forEach(function (id) {
+      el(id).addEventListener('change', function () { var c = {}; c[id] = this.checked; cambiar(c); });
+    });
+    if (sintesis && 'onvoiceschanged' in sintesis) sintesis.onvoiceschanged = pintarVoces;
+  }
+
+  window.ChatVoz = {
+    opciones: op, ajustes: function () { return aj; }, cambiar: cambiar, sanear: sanear, preparar: preparar, recibir: recibir,
+    pasaElFiltro: pasaElFiltro, limpiarTexto: limpiarTexto, ordenarVoces: ordenarVoces,
+    cola: function () { return cola.slice(); }, descartados: function () { return descartados; },
+    saltar: saltar, silenciar: silenciar, activar: activar, probar: probar, estadoDeVoz: estadoDeVoz, hablando: function () { return hablando; },
+    estado: function () { return estado; }, motivo: function () { return motivoTexto; },
+    conectar: conectar, reintentarLuego: reintentarLuego, vigilar: vigilar, pintarTodo: pintarTodo,
+    CLAVE: CLAVE, EDAD_MAXIMA_MS: EDAD_MAXIMA_MS
+  };
+
+  // ── Arranque ───────────────────────────────────────────────────────────────
+  pintarAjustes();
+  conectarControles();
+  pintarTodo();
+  if (CFG.sinArrancar) return;
+  setInterval(vigilar, 5000);
+  conectar();
+})();
+</script>
+</body>
+</html>
