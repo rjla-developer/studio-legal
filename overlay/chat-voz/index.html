@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- El chat en voz alta (29-oct-2026): lee en voz alta cada mensaje del chat de Kick con la voz del NAVEGADOR (speechSynthesis).
+<!-- El chat en voz alta (29-oct-2026): lee en voz alta cada mensaje del chat de Kick con la voz del NAVEGADOR (speechSynthesis)
+     o, desde el 2-nov-2026, con una voz de ELEVENLABS (a elegir aquí): el audio lo pide el API de Melies, que tiene la llave de ElevenLabs;
+     esta página NUNCA la ve. El audio llega, se oye y se suelta (blob:), no se guarda. Cada letra de ElevenLabs cuesta: el API recorta a
+     140 letras, tiene un tope por día y, si lo topa o falla, esta página cae sola a la voz del navegador y dice por qué.
      Se abre en el navegador de la PC del dueño, NO como fuente de OBS: el público no debe oírla. Un solo archivo, sin nada de fuera.
      Lo único que se conecta es el flujo del API (el MISMO del chat en OBS, con su llave de solo ver en ?t=…). Ni audio ni texto se guardan:
      solo los ajustes, en este navegador (localStorage). Los textos del chat se ponen SIEMPRE con textContent. Ver docs/CHAT-EN-VOZ-ALTA.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-f/lIYL762jdZVjPccksxi8cwnE0J/TlYxC2afDul3cE='; style-src 'unsafe-inline'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EAXVgsCjFrD1FkIix++Tfz9l9Ygo5hAO+nMGiAwWbQc='; style-src 'unsafe-inline'; connect-src https://studio-dev.leviath4n.net http://localhost:* http://127.0.0.1:*; media-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat en voz alta · Melies</title>
@@ -41,6 +44,7 @@
   .nota.aviso { color: var(--aviso); }
   #ultimo { font-size: 15px; min-height: 22px; padding: 8px 10px; border-left: 3px solid var(--acento); background: var(--panel); border-radius: 4px; margin-bottom: 12px; word-break: break-word; }
   #cola { color: var(--suave); font-size: 13px; }
+  #motivoVoz { font-size: 13px; color: var(--aviso); min-height: 18px; margin: -4px 0 12px; }
 </style>
 </head>
 <body>
@@ -50,9 +54,11 @@
 <div class="fila">
   <span class="chip espera" id="chipConexion"><i></i><span id="textoConexion">Conectando…</span></span>
   <span class="chip espera" id="chipVoz"><i></i><span id="textoVoz">Voz bloqueada</span></span>
+  <span class="chip espera" id="chipGasto"><i></i><span id="textoGasto">ElevenLabs: sin consultar</span></span>
   <span id="cola"></span>
 </div>
 <p id="motivo"></p>
+<p id="motivoVoz" aria-live="polite"></p>
 
 <div class="fila">
   <button class="principal" id="activar" type="button">Activar voz</button>
@@ -61,6 +67,13 @@
   <button id="probar" type="button">Probar voz</button>
 </div>
 <div id="ultimo" aria-live="polite">Aún no he leído nada.</div>
+
+<fieldset><legend>Motor de voz</legend>
+  <label><span class="nom">Motor</span><select id="motor"><option value="navegador">Navegador (gratis)</option><option value="elevenlabs">ElevenLabs (cuesta letras)</option></select></label>
+  <label><span class="nom">Voz de ElevenLabs</span><select id="vozEl"></select></label>
+  <p class="nota" id="notaEl"></p>
+  <p class="nota">Cada mensaje de ElevenLabs gasta letras de tu plan: se leen 140 como mucho y hay un tope por día. Si se acaba o falla, se oye la voz del navegador.</p>
+</fieldset>
 
 <fieldset><legend>Sonido</legend>
   <label><span class="nom">Volumen</span><input type="range" id="volumen" min="0" max="1" step="0.05"><output id="volumenV"></output></label>
@@ -106,7 +119,9 @@
     if (!texto) return null;
     try {
       var u = new URL(texto);
-      if (u.protocol !== 'https:' && !(u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1'))) return null;
+      var local = u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
+      var melies = u.protocol === 'https:' && u.hostname === 'studio-dev.leviath4n.net';
+      if (!local && !melies) return null; // solo el API de Melies (lo mismo que dice la política de contenido)
       return u.href.replace(/\/+$/, '');
     } catch (e) { return null; }
   }
@@ -126,8 +141,12 @@
   var INSIGNIAS_QUE_PASAN = ['moderador', 'transmisor', 'suscriptor'];
   var POR_OMISION = {
     silenciado: false, volumen: 1, velocidad: 1, voz: '', filtro: 'todos', lista: '',
-    largo: 140, enlaces: true, emojis: true, bots: true, nombre: true, tope: 5
+    largo: 140, enlaces: true, emojis: true, bots: true, nombre: true, tope: 5,
+    motor: 'navegador', vozEl: 'htFfPSZGJwjBv1CL0aMD' // Antonio, de la biblioteca pública de ElevenLabs (pedido del dueño, 2-nov-2026)
   };
+  var MOTORES = ['navegador', 'elevenlabs'];
+  var PAUSA_DE_ELEVENLABS_MS = 10 * 60000; // tras un tope, créditos o llave, la voz del navegador hace el trabajo este rato
+  var PAUSA_CORTA_MS = 60000;              // tras una falla pasajera (red, 5xx)
   var CLAVE = 'melies-chat-en-voz-alta';
 
   function acotar(v, min, max, porOmision) {
@@ -151,6 +170,8 @@
     o.bots = a.bots === undefined ? POR_OMISION.bots : a.bots === true;
     o.nombre = a.nombre === undefined ? POR_OMISION.nombre : a.nombre === true;
     o.tope = Math.round(acotar(a.tope, LIMITES.tope[0], LIMITES.tope[1], POR_OMISION.tope));
+    o.motor = MOTORES.indexOf(a.motor) >= 0 ? a.motor : POR_OMISION.motor;
+    o.vozEl = typeof a.vozEl === 'string' && /^[A-Za-z0-9]{10,40}$/.test(a.vozEl) ? a.vozEl : POR_OMISION.vozEl;
     return o;
   }
 
@@ -237,6 +258,118 @@
 
   function vozDisponible() { return !!(sintesis && Locucion); }
 
+  // ── ElevenLabs (por el API de Melies) ──────────────────────────────────────
+  var ev = { voces: [], cargadas: false, cargando: false, errorDeLista: '', letrasHoy: null, tope: null, caidaHasta: 0, pedidos: 0, delNavegador: 0 };
+  var turnoEl = 0;
+  function llamar() { return (CFG.fetch || window.fetch).apply(window, arguments); }
+
+  function miles(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  /** El motor que de verdad suena ahora: ElevenLabs si se eligió, hay voz elegida y no está en pausa; si no, el navegador. */
+  function motorEfectivo() {
+    if (aj.motor === 'elevenlabs' && aj.vozEl && reloj() >= ev.caidaHasta) return 'elevenlabs';
+    return 'navegador';
+  }
+  function direccionEl(ruta) { return op.api + ruta + '?t=' + encodeURIComponent(op.llave); }
+  function motivoDe(r, j) {
+    var m = j && typeof j === 'object' && j.message ? String(j.message) : '';
+    return m || ('El servidor contestó ' + r.status + ' sin explicar por qué.');
+  }
+  function apuntarGasto(letrasHoy, tope) {
+    if (typeof letrasHoy === 'number' && isFinite(letrasHoy)) ev.letrasHoy = letrasHoy;
+    if (typeof tope === 'number' && isFinite(tope)) ev.tope = tope;
+  }
+  /** La lista de voces de TU cuenta (gratis: no gasta letras). Sin llave de ElevenLabs en el servidor, lo dice y se queda con el navegador. */
+  function cargarVocesEl() {
+    if (!op.llave || ev.cargando) return Promise.resolve(false);
+    ev.cargando = true; ev.errorDeLista = ''; pintarTodo();
+    return llamar(direccionEl('/overlay/chat/voces'), { cache: 'no-store', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { r: r, j: j }; }); })
+      .then(function (x) {
+        ev.cargando = false;
+        if (!x.r.ok) { ev.errorDeLista = motivoDe(x.r, x.j); ev.cargadas = false; pintarAjustes(); pintarTodo(); return false; }
+        ev.voces = Array.isArray(x.j.voces) ? x.j.voces : [];
+        ev.cargadas = true;
+        apuntarGasto(x.j.letrasHoy, x.j.topeDiarioLetras);
+        if (aj.vozEl && !ev.voces.some(function (v) { return v.id === aj.vozEl; })) ev.errorDeLista = 'La voz elegida ya no aparece en tu cuenta de ElevenLabs.';
+        pintarAjustes(); pintarTodo();
+        return true;
+      })
+      .catch(function () {
+        ev.cargando = false; ev.cargadas = false;
+        ev.errorDeLista = 'No llego al servidor de Melies (' + op.api + ') para pedir tus voces de ElevenLabs.';
+        pintarAjustes(); pintarTodo();
+        return false;
+      });
+  }
+  /**
+   * Pide el audio de un texto y lo reproduce. `pista` es lo que `saltar`/`silenciar` cortan.
+   * Si algo falla (tope, créditos, red, llave, el navegador no deja sonar) llama a `alNavegador` con ESE mismo mensaje
+   * y escribe el motivo de verdad. `fin` se llama una sola vez, al terminar de sonar.
+   */
+  function decirConElevenLabs(texto, pista, fin, alNavegador) {
+    var yo = ++turnoEl;
+    var control = typeof AbortController === 'function' ? new AbortController() : null;
+    var corriendo = true;
+    pista.parar = function () { corriendo = false; try { if (control) control.abort(); } catch (e) { /* ya */ } if (pista.audio) pista.audio.parar(); };
+    function viva() { return corriendo && yo === turnoEl; }
+    function caer(status, motivo) {
+      if (!viva()) return;
+      corriendo = false;
+      ev.delNavegador++;
+      // Tope del día, créditos o llave: no insistir en un rato. Una falla pasajera: un minuto.
+      var larga = (status === 429 && /tope de hoy|apagada/.test(motivo)) || status === 402 || (status === 422 && /no existe o no está disponible/.test(motivo)) || (status === 503 && /ELEVENLABS_API_KEY|rechaz/.test(motivo));
+      ev.caidaHasta = reloj() + (larga ? PAUSA_DE_ELEVENLABS_MS : PAUSA_CORTA_MS);
+      ponerMotivoVoz('ElevenLabs no pudo: ' + motivo + ' Este mensaje suena con la voz del navegador.');
+      if (status === 429 || status === 402) refrescarGasto();
+      pintarTodo();
+      alNavegador();
+    }
+    llamar(direccionEl('/overlay/chat/voz'), {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ texto: texto, voz: aj.vozEl }),
+      cache: 'no-store', referrerPolicy: 'no-referrer', signal: control ? control.signal : undefined
+    }).then(function (r) {
+      if (!viva()) return null;
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) { caer(r.status, motivoDe(r, j)); return null; });
+      }
+      apuntarGasto(Number(r.headers.get('X-Melies-Letras-Hoy')), Number(r.headers.get('X-Melies-Tope-Diario')));
+      ev.pedidos++;
+      ponerMotivoVoz('');
+      return r.blob();
+    }).then(function (blob) {
+      if (!blob || !viva()) return;
+      pintarTodo();
+      reproducirEl(blob, pista, function () { if (viva()) fin(); }, function (m) { caer(0, m); });
+    }).catch(function (e) {
+      if (!viva()) return;
+      caer(0, e && e.name === 'AbortError' ? 'ElevenLabs tardó demasiado.' : 'No llego al servidor de Melies (' + op.api + ').');
+    });
+  }
+  function reproducirEl(blob, pista, fin, fallar) {
+    if (CFG.reproductor) { CFG.reproductor(blob, { volumen: aj.volumen, velocidad: aj.velocidad }, fin, fallar, pista); return; }
+    var Aud = window.Audio, U = window.URL;
+    if (!Aud || !U || !U.createObjectURL) { fallar('Este navegador no sabe reproducir el audio.'); return; }
+    var url = U.createObjectURL(blob);
+    var a = new Aud(url);
+    var liberada = false;
+    function liberar() { if (!liberada) { liberada = true; try { U.revokeObjectURL(url); } catch (e) { /* ya */ } } }
+    a.volume = aj.volumen;
+    a.playbackRate = aj.velocidad;
+    a.onended = function () { liberar(); fin(); };
+    a.onerror = function () { liberar(); fallar('El navegador no pudo reproducir el audio de ElevenLabs.'); };
+    pista.audio = { parar: function () { try { a.pause(); } catch (e) { /* ya */ } liberar(); } };
+    var p = a.play();
+    if (p && p.catch) p.catch(function (e) { liberar(); fallar('El navegador no dejó sonar el audio' + (e && e.message ? ' (' + e.message + ')' : '') + '. Pulsa «Activar voz».'); });
+  }
+  /** El gasto de hoy sin gastar nada. */
+  function refrescarGasto() {
+    if (!op.llave) return Promise.resolve();
+    return llamar(direccionEl('/overlay/chat/voz/estado'), { cache: 'no-store', referrerPolicy: 'no-referrer' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j) { apuntarGasto(j.letrasHoy, j.topeDiarioLetras); pintarTodo(); } })
+      .catch(function () { /* el chip se queda como estaba */ });
+  }
+
   /** Las voces: primero las es-*, luego el resto, cada grupo por nombre. */
   function ordenarVoces(voces) {
     var lista = Array.prototype.slice.call(voces || []);
@@ -294,11 +427,34 @@
     avanzar();
   }
   function avanzar() {
-    if (hablando || aj.silenciado || !activada || !vozDisponible() || !cola.length) { pintarCola(); return; }
+    var conEl = motorEfectivo() === 'elevenlabs';
+    if (hablando || aj.silenciado || !activada || !(conEl || vozDisponible()) || !cola.length) { pintarCola(); return; }
     var texto = cola.shift();
     hablando = true;
     pintarUltimo(texto);
     pintarCola();
+    if (conEl) {
+      var pista = {};
+      actual = pista;
+      var finEl = function () { if (actual === pista) terminarEste(); };
+      clearTimeout(vigilante);
+      vigilante = setTimeout(function () {
+        if (actual !== pista) return;
+        if (pista.parar) pista.parar();
+        terminarEste();
+      }, 40000 + texto.length * 120);
+      // Si ElevenLabs falla, ESTE mensaje suena con el navegador (si lo hay).
+      decirConElevenLabs(texto, pista, finEl, function () {
+        if (actual !== pista) return;
+        if (!vozDisponible()) { finEl(); return; }
+        pista.parar = null;
+        hablarConElNavegador(texto);
+      });
+      return;
+    }
+    hablarConElNavegador(texto);
+  }
+  function hablarConElNavegador(texto) {
     try {
       var u = locucion(texto);
       actual = u;
@@ -318,11 +474,17 @@
       terminarEste();
     }
   }
+  /** Corta lo que suena, sea ElevenLabs (su audio y su pedido en vuelo) o el navegador. */
+  function cortarLoQueSuena() {
+    turnoEl++;
+    if (actual && typeof actual.parar === 'function') { try { actual.parar(); } catch (e) { /* ya */ } }
+    else if (sintesis) { try { sintesis.cancel(); } catch (e) { /* nada */ } }
+  }
   /** «Saltar este»: corta lo que suena y pasa al siguiente. */
   function saltar() {
     if (!hablando) return false;
+    cortarLoQueSuena();
     actual = null;
-    try { sintesis.cancel(); } catch (e) { /* nada */ }
     clearTimeout(vigilante);
     vigilante = null;
     hablando = false;
@@ -335,25 +497,33 @@
     guardar();
     if (aj.silenciado) {
       cola = [];
-      var estabaHablando = hablando;
+      cortarLoQueSuena();
       actual = null;
       clearTimeout(vigilante);
       vigilante = null;
       hablando = false;
-      if (estabaHablando) { try { sintesis.cancel(); } catch (e) { /* nada */ } }
     }
     pintarTodo();
   }
   /** El clic que destraba el audio del navegador. Dice una frase corta para comprobar que suena. */
   function activar() {
-    if (!vozDisponible()) { pintarTodo(); return false; }
+    var conEl = motorEfectivo() === 'elevenlabs';
+    if (!conEl && !vozDisponible()) { pintarTodo(); return false; }
     activada = true;
-    try { sintesis.speak(locucion('Voz activada')); } catch (e) { /* el siguiente mensaje lo intentará */ }
+    // Con ElevenLabs no se gasta una frase en esto: el clic ya destrabó el audio.
+    if (!conEl) { try { sintesis.speak(locucion('Voz activada')); } catch (e) { /* el siguiente mensaje lo intentará */ } }
     pintarTodo();
     avanzar();
     return true;
   }
   function probar() {
+    if (motorEfectivo() === 'elevenlabs') {
+      activada = true;
+      cola.unshift((aj.nombre ? 'Luna dice: ' : '') + 'Así sonará el chat en voz alta');
+      pintarTodo();
+      avanzar();
+      return true;
+    }
     if (!vozDisponible()) return false;
     activada = true;
     try { sintesis.speak(locucion((aj.nombre ? 'Luna dice: ' : '') + 'Así sonará el chat en voz alta')); } catch (e) { return false; }
@@ -361,7 +531,7 @@
     return true;
   }
   function estadoDeVoz() {
-    if (!vozDisponible()) return 'sin-voz';
+    if (!vozDisponible() && motorEfectivo() === 'navegador') return 'sin-voz';
     if (!activada) return 'bloqueada';
     return aj.silenciado ? 'silenciada' : 'lista';
   }
@@ -452,6 +622,7 @@
     motivoTexto = texto;
     pintarTodo();
   }
+  function ponerMotivoVoz(texto) { var m = el('motivoVoz'); if (m) m.textContent = texto; }
   function pintarUltimo(texto) { var u = el('ultimo'); if (u) u.textContent = texto; }
   function pintarCola() {
     var c = el('cola');
@@ -477,7 +648,31 @@
     if (!texto && v === 'sin-voz') texto = 'Este navegador no trae voz (speechSynthesis). Usa Chrome o Edge en la PC.';
     m.textContent = texto;
     m.className = estado === 'sin-llave' || v === 'sin-voz' ? 'mal' : '';
+    pintarGasto();
     pintarCola();
+  }
+  /** El chip del gasto: «ElevenLabs: 4 200 de 20 000 letras» (o por qué no suena). */
+  function pintarGasto() {
+    var c = el('chipGasto');
+    if (!c) return;
+    var gasto = ev.letrasHoy != null && ev.tope != null ? miles(ev.letrasHoy) + ' de ' + miles(ev.tope) + ' letras' : 'sin consultar';
+    var clase = 'espera', texto = 'ElevenLabs: ' + gasto;
+    if (aj.motor !== 'elevenlabs') { texto = 'Motor: navegador · ElevenLabs hoy: ' + gasto; }
+    else if (!aj.vozEl) { texto = 'ElevenLabs: elige una voz'; }
+    else if (ev.errorDeLista && !ev.cargadas) { clase = 'mal'; texto = 'ElevenLabs no disponible · voz del navegador'; }
+    else if (motorEfectivo() === 'navegador') { clase = 'mal'; texto = 'ElevenLabs en pausa · voz del navegador · ' + gasto; }
+    else { clase = 'ok'; texto = 'ElevenLabs: ' + gasto; }
+    c.className = 'chip ' + clase;
+    el('textoGasto').textContent = texto;
+    var n = el('notaEl');
+    if (n) n.textContent = ev.errorDeLista ? ev.errorDeLista : (ev.cargando ? 'Cargando tus voces de ElevenLabs…' : notaDeLaVoz());
+  }
+  /** Una voz de la biblioteca pública puede no estar agregada a la cuenta: se avisa cómo, antes de que falle. */
+  function notaDeLaVoz() {
+    var v = ev.voces.filter(function (x) { return x.id === aj.vozEl; })[0];
+    return v && v.enLaCuenta === false
+      ? '«' + v.nombre + '» viene de la biblioteca pública de ElevenLabs. Si no suena, agrégala a «Mis voces» (botón «Add to my voices») en https://elevenlabs.io/voices/' + v.id + ' y vuelve a probar.'
+      : '';
   }
   function pintarVoces() {
     var s = el('voz');
@@ -508,6 +703,29 @@
     el('lista').value = aj.lista; el('largo').value = aj.largo; el('tope').value = aj.tope;
     el('enlaces').checked = aj.enlaces; el('emojis').checked = aj.emojis; el('bots').checked = aj.bots; el('nombre').checked = aj.nombre;
     pintarVoces();
+    pintarVocesEl();
+    if (el('motor')) el('motor').value = aj.motor;
+  }
+  function pintarVocesEl() {
+    var s = el('vozEl');
+    if (!s) return;
+    while (s.firstChild) s.removeChild(s.firstChild);
+    if (!ev.voces.some(function (v) { return v.id === aj.vozEl; })) {
+      // Mientras no llega la lista (o si falla), la elegida sigue visible: por omisión es Antonio.
+      var actual = document.createElement('option');
+      actual.value = aj.vozEl;
+      actual.textContent = aj.vozEl === POR_OMISION.vozEl ? 'Antonio (por omisión)' : aj.vozEl;
+      s.appendChild(actual);
+    }
+    ev.voces.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v.id;
+      var et = v.etiquetas || {};
+      var extra = [et.gender, et.accent, et.descriptive].filter(function (x) { return !!x; }).join(', ');
+      o.textContent = v.nombre + (extra ? ' · ' + extra : '');
+      s.appendChild(o);
+    });
+    s.value = aj.vozEl;
   }
   /** Cambia uno o varios ajustes (siempre pasan por `sanear`), los guarda y repinta. */
   function cambiar(cambios) {
@@ -530,6 +748,12 @@
     el('volumen').addEventListener('input', function () { cambiar({ volumen: this.value }); });
     el('velocidad').addEventListener('input', function () { cambiar({ velocidad: this.value }); });
     el('voz').addEventListener('change', function () { cambiar({ voz: this.value }); });
+    el('motor').addEventListener('change', function () {
+      cambiar({ motor: this.value });
+      ponerMotivoVoz('');
+      if (aj.motor === 'elevenlabs') { ev.caidaHasta = 0; if (!ev.cargadas) cargarVocesEl(); }
+    });
+    el('vozEl').addEventListener('change', function () { ev.caidaHasta = 0; ponerMotivoVoz(''); cambiar({ vozEl: this.value }); });
     var radios = document.getElementsByName('filtro');
     for (var i = 0; i < radios.length; i++) radios[i].addEventListener('change', function () { if (this.checked) cambiar({ filtro: this.value }); });
     el('lista').addEventListener('input', function () { cambiar({ lista: this.value }); });
@@ -548,6 +772,8 @@
     saltar: saltar, silenciar: silenciar, activar: activar, probar: probar, estadoDeVoz: estadoDeVoz, hablando: function () { return hablando; },
     estado: function () { return estado; }, motivo: function () { return motivoTexto; },
     conectar: conectar, reintentarLuego: reintentarLuego, vigilar: vigilar, pintarTodo: pintarTodo,
+    motorEfectivo: motorEfectivo, cargarVocesEl: cargarVocesEl, refrescarGasto: refrescarGasto,
+    elevenlabs: function () { return ev; }, motivoDeLaVoz: function () { var m = el('motivoVoz'); return m ? m.textContent : ''; },
     CLAVE: CLAVE, EDAD_MAXIMA_MS: EDAD_MAXIMA_MS
   };
 
@@ -558,6 +784,8 @@
   if (CFG.sinArrancar) return;
   setInterval(vigilar, 5000);
   conectar();
+  // Las voces de ElevenLabs y el gasto de hoy (gratis: no gastan letras).
+  if (aj.motor === 'elevenlabs') cargarVocesEl(); else refrescarGasto();
 })();
 </script>
 </body>
