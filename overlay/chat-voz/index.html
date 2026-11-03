@@ -10,7 +10,7 @@
      Se abre en el navegador de la PC del dueño, NO como fuente de OBS: el público no debe oírla. Un solo archivo, sin nada de fuera.
      Lo único que se conecta es el flujo del API (el MISMO del chat en OBS, con su llave de solo ver en ?t=…). Ni audio ni texto se guardan:
      solo los ajustes, en este navegador (localStorage). Los textos del chat se ponen SIEMPRE con textContent. Ver docs/CHAT-EN-VOZ-ALTA.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-EAXVgsCjFrD1FkIix++Tfz9l9Ygo5hAO+nMGiAwWbQc='; style-src 'unsafe-inline'; connect-src https://studio-dev.leviath4n.net http://localhost:* http://127.0.0.1:*; media-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fgXFfeC1pGTYuW7W1GTkx4YJyeqtfYbMWzirQz88uXI='; style-src 'unsafe-inline'; connect-src https://studio-dev.leviath4n.net http://localhost:* http://127.0.0.1:*; media-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat en voz alta · Melies</title>
@@ -72,6 +72,9 @@
   <label><span class="nom">Motor</span><select id="motor"><option value="navegador">Navegador (gratis)</option><option value="elevenlabs">ElevenLabs (cuesta letras)</option></select></label>
   <label><span class="nom">Voz de ElevenLabs</span><select id="vozEl"></select></label>
   <p class="nota" id="notaEl"></p>
+  <label><span class="nom">Estilo de la voz</span><select id="estilo"><option value="normal">Normal (rápido, el más barato)</option><option value="animado">Animado (más emoción, cuenta doble)</option><option value="efusivo">Efusivo (el más emocionado, más lento y más caro)</option></select></label>
+  <p class="nota" id="notaEstilo"></p>
+  <button id="probarEstilo" type="button">Probar con el estilo elegido</button>
   <p class="nota">Cada mensaje de ElevenLabs gasta letras de tu plan: se leen 140 como mucho y hay un tope por día. Si se acaba o falla, se oye la voz del navegador.</p>
 </fieldset>
 
@@ -97,6 +100,8 @@
   <label><input type="checkbox" id="emojis"> Saltar emojis y emotes</label>
   <label><input type="checkbox" id="bots"> No leer bots ni comandos (!, /)</label>
   <label><input type="checkbox" id="nombre"> Decir el nombre («Fulano dice: …»)</label>
+  <label><span class="nom">Cuándo decir el nombre</span><select id="nombreModo"><option value="cambio">Al cambiar de persona, o cada cierto número de mensajes</option><option value="siempre">En todos los mensajes</option></select></label>
+  <label><span class="nom">…o cada cuántos mensajes</span><input type="number" id="nombreCada" min="1" max="30" step="1"></label>
 </fieldset>
 
 <fieldset><legend>Cola</legend>
@@ -135,16 +140,24 @@
     'moobot', 'streamlabs', 'sery_bot', 'wizebot', 'kicklet', 'blerp'];
   var SILENCIO_MAXIMO_MS = 45000;   // sin un latido en este tiempo, la conexión se da por muerta (como la del chat en OBS)
   var EDAD_MAXIMA_MS = 10000;       // lo que llega con más de 10 s ya no se lee (al reconectar el servidor repite los últimos 20 s)
-  var LIMITES = { volumen: [0, 1], velocidad: [0.5, 2], largo: [20, 300], tope: [1, 30] };
+  var LIMITES = { volumen: [0, 1], velocidad: [0.5, 2], largo: [20, 300], tope: [1, 30], nombreCada: [1, 30] };
   var FILTROS = ['todos', 'eventos', 'privilegiados', 'lista'];
   var TIPOS_DE_EVENTO = ['donacion', 'suscripcion', 'regalo', 'propina'];
   var INSIGNIAS_QUE_PASAN = ['moderador', 'transmisor', 'suscriptor'];
   var POR_OMISION = {
     silenciado: false, volumen: 1, velocidad: 1, voz: '', filtro: 'todos', lista: '',
     largo: 140, enlaces: true, emojis: true, bots: true, nombre: true, tope: 5,
+    nombreModo: 'cambio', nombreCada: 6,
+    estilo: 'normal', // el estilo de ElevenLabs: Normal es el de siempre y el más barato; los otros hay que elegirlos
     motor: 'navegador', vozEl: 'htFfPSZGJwjBv1CL0aMD' // Antonio, de la biblioteca pública de ElevenLabs (pedido del dueño, 2-nov-2026)
   };
   var MOTORES = ['navegador', 'elevenlabs'];
+  // Los estilos de la voz (2-nov-2026). El servidor decide el modelo y los ajustes; aquí solo la palabra y cuánto pesa en el tope del día
+  // (una prueba compara esta lista con la del servidor).
+  var ESTILOS = ['normal', 'animado', 'efusivo'];
+  var PESO_DEL_ESTILO = { normal: 1, animado: 2, efusivo: 2 };
+  var FRASE_DE_PRUEBA_ANIMADA = '¡QUÉ PASÓ, QUÉ PASÓ, ahí viene el susto, jajaja!';
+  var NOMBRE_MODOS = ['cambio', 'siempre'];
   var PAUSA_DE_ELEVENLABS_MS = 10 * 60000; // tras un tope, créditos o llave, la voz del navegador hace el trabajo este rato
   var PAUSA_CORTA_MS = 60000;              // tras una falla pasajera (red, 5xx)
   var CLAVE = 'melies-chat-en-voz-alta';
@@ -170,6 +183,9 @@
     o.bots = a.bots === undefined ? POR_OMISION.bots : a.bots === true;
     o.nombre = a.nombre === undefined ? POR_OMISION.nombre : a.nombre === true;
     o.tope = Math.round(acotar(a.tope, LIMITES.tope[0], LIMITES.tope[1], POR_OMISION.tope));
+    o.nombreModo = NOMBRE_MODOS.indexOf(a.nombreModo) >= 0 ? a.nombreModo : POR_OMISION.nombreModo;
+    o.nombreCada = Math.round(acotar(a.nombreCada, LIMITES.nombreCada[0], LIMITES.nombreCada[1], POR_OMISION.nombreCada));
+    o.estilo = ESTILOS.indexOf(a.estilo) >= 0 ? a.estilo : POR_OMISION.estilo;
     o.motor = MOTORES.indexOf(a.motor) >= 0 ? a.motor : POR_OMISION.motor;
     o.vozEl = typeof a.vozEl === 'string' && /^[A-Za-z0-9]{10,40}$/.test(a.vozEl) ? a.vozEl : POR_OMISION.vozEl;
     return o;
@@ -242,7 +258,18 @@
     if (!pasaElFiltro(m)) return null;
     var t = limpiarTexto(crudo);
     if (!t) return null;
-    return aj.nombre ? nombreHablado(m.nombre) + ' dice: ' + t : t;
+    return decirNombre(m.nombre) ? nombreHablado(m.nombre) + ' dice: ' + t : t;
+  }
+  // El nombre sin repetirlo: se dice al cambiar de persona o cada `nombreCada` mensajes (o siempre, si se prefiere). Solo se recuerda
+  // el último nombre y un contador, en memoria; nunca el texto.
+  var ultimoQuien = null, desdeElNombre = 0;
+  function decirNombre(nombre) {
+    if (!aj.nombre) return false;
+    var quien = nombreHablado(nombre).toLowerCase();
+    var decir = aj.nombreModo === 'siempre' || quien !== ultimoQuien || desdeElNombre + 1 >= aj.nombreCada;
+    ultimoQuien = quien;
+    desdeElNombre = decir ? 0 : desdeElNombre + 1;
+    return decir;
   }
 
   // ── La voz y la cola ───────────────────────────────────────────────────────
@@ -325,7 +352,7 @@
       alNavegador();
     }
     llamar(direccionEl('/overlay/chat/voz'), {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ texto: texto, voz: aj.vozEl }),
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ texto: texto, voz: aj.vozEl, estilo: aj.estilo }),
       cache: 'no-store', referrerPolicy: 'no-referrer', signal: control ? control.signal : undefined
     }).then(function (r) {
       if (!viva()) return null;
@@ -530,6 +557,18 @@
     pintarTodo();
     return true;
   }
+  /** «Probar con el estilo elegido»: una frase animada con el motor ElevenLabs (cuesta lo que cuesta el estilo; solo ElevenLabs tiene estilos). */
+  function probarConEstilo() {
+    if (motorEfectivo() !== 'elevenlabs') {
+      ponerMotivoVoz('Los estilos son de ElevenLabs: elige ese motor (y una voz) para probarlos.');
+      return false;
+    }
+    activada = true;
+    cola.unshift(FRASE_DE_PRUEBA_ANIMADA);
+    pintarTodo();
+    avanzar();
+    return true;
+  }
   function estadoDeVoz() {
     if (!vozDisponible() && motorEfectivo() === 'navegador') return 'sin-voz';
     if (!activada) return 'bloqueada';
@@ -661,15 +700,26 @@
     else if (!aj.vozEl) { texto = 'ElevenLabs: elige una voz'; }
     else if (ev.errorDeLista && !ev.cargadas) { clase = 'mal'; texto = 'ElevenLabs no disponible · voz del navegador'; }
     else if (motorEfectivo() === 'navegador') { clase = 'mal'; texto = 'ElevenLabs en pausa · voz del navegador · ' + gasto; }
-    else { clase = 'ok'; texto = 'ElevenLabs: ' + gasto; }
+    else { clase = 'ok'; texto = 'ElevenLabs: ' + gasto + (PESO_DEL_ESTILO[aj.estilo] > 1 ? ' · este estilo cuenta doble' : ''); }
     c.className = 'chip ' + clase;
     el('textoGasto').textContent = texto;
+    var ne = el('notaEstilo');
+    if (ne) ne.textContent = notaDelEstilo();
     var n = el('notaEl');
     if (n) n.textContent = ev.errorDeLista ? ev.errorDeLista : (ev.cargando ? 'Cargando tus voces de ElevenLabs…' : notaDeLaVoz());
+  }
+  /** Qué hace cada estilo y cuánto cuesta (letras del tope: Animado y Efusivo pesan el doble porque cuestan el doble por letra). */
+  function notaDelEstilo() {
+    if (aj.estilo === 'animado') return 'Animado: un modelo más expresivo, con más emoción y un poco más de prisa. Cada letra cuenta doble en el tope del día (un mensaje de 50 letras gasta 100).';
+    if (aj.estilo === 'efusivo') return 'Efusivo: el modelo más emocionado (Eleven v3, con «[excited]» delante). Es más lento en contestar y cada letra cuenta doble en el tope del día (un mensaje de 50 letras gasta ~120).';
+    return 'Normal: el de siempre, rápido y el más barato. Para más ánimo prueba Animado, o una voz «enérgica» de la lista.';
   }
   /** Una voz de la biblioteca pública puede no estar agregada a la cuenta: se avisa cómo, antes de que falle. */
   function notaDeLaVoz() {
     var v = ev.voces.filter(function (x) { return x.id === aj.vozEl; })[0];
+    var et = (v && v.etiquetas) || {};
+    var pista = [et.descriptive, et.use_case].filter(function (x) { return !!x; }).join(' · ');
+    if (v && v.enLaCuenta !== false) return pista ? 'Pista de esta voz: ' + pista + '.' : '';
     return v && v.enLaCuenta === false
       ? '«' + v.nombre + '» viene de la biblioteca pública de ElevenLabs. Si no suena, agrégala a «Mis voces» (botón «Add to my voices») en https://elevenlabs.io/voices/' + v.id + ' y vuelve a probar.'
       : '';
@@ -701,6 +751,9 @@
     var radios = document.getElementsByName('filtro');
     for (var i = 0; i < radios.length; i++) radios[i].checked = radios[i].value === aj.filtro;
     el('lista').value = aj.lista; el('largo').value = aj.largo; el('tope').value = aj.tope;
+    if (el('estilo')) el('estilo').value = aj.estilo;
+    if (el('nombreModo')) el('nombreModo').value = aj.nombreModo;
+    if (el('nombreCada')) el('nombreCada').value = aj.nombreCada;
     el('enlaces').checked = aj.enlaces; el('emojis').checked = aj.emojis; el('bots').checked = aj.bots; el('nombre').checked = aj.nombre;
     pintarVoces();
     pintarVocesEl();
@@ -721,7 +774,7 @@
       var o = document.createElement('option');
       o.value = v.id;
       var et = v.etiquetas || {};
-      var extra = [et.gender, et.accent, et.descriptive].filter(function (x) { return !!x; }).join(', ');
+      var extra = [et.gender, et.accent, et.descriptive, et.use_case].filter(function (x) { return !!x; }).join(', ');
       o.textContent = v.nombre + (extra ? ' · ' + extra : '');
       s.appendChild(o);
     });
@@ -745,6 +798,10 @@
     el('silenciar').addEventListener('click', function () { silenciar(!aj.silenciado); });
     el('saltar').addEventListener('click', saltar);
     el('probar').addEventListener('click', probar);
+    el('probarEstilo').addEventListener('click', probarConEstilo);
+    el('estilo').addEventListener('change', function () { cambiar({ estilo: this.value }); });
+    el('nombreModo').addEventListener('change', function () { cambiar({ nombreModo: this.value }); });
+    el('nombreCada').addEventListener('change', function () { cambiar({ nombreCada: this.value }); });
     el('volumen').addEventListener('input', function () { cambiar({ volumen: this.value }); });
     el('velocidad').addEventListener('input', function () { cambiar({ velocidad: this.value }); });
     el('voz').addEventListener('change', function () { cambiar({ voz: this.value }); });
@@ -769,7 +826,7 @@
     opciones: op, ajustes: function () { return aj; }, cambiar: cambiar, sanear: sanear, preparar: preparar, recibir: recibir,
     pasaElFiltro: pasaElFiltro, limpiarTexto: limpiarTexto, ordenarVoces: ordenarVoces,
     cola: function () { return cola.slice(); }, descartados: function () { return descartados; },
-    saltar: saltar, silenciar: silenciar, activar: activar, probar: probar, estadoDeVoz: estadoDeVoz, hablando: function () { return hablando; },
+    saltar: saltar, silenciar: silenciar, activar: activar, probar: probar, probarConEstilo: probarConEstilo, ESTILOS: ESTILOS, PESO_DEL_ESTILO: PESO_DEL_ESTILO, estadoDeVoz: estadoDeVoz, hablando: function () { return hablando; },
     estado: function () { return estado; }, motivo: function () { return motivoTexto; },
     conectar: conectar, reintentarLuego: reintentarLuego, vigilar: vigilar, pintarTodo: pintarTodo,
     motorEfectivo: motorEfectivo, cargarVocesEl: cargarVocesEl, refrescarGasto: refrescarGasto,
