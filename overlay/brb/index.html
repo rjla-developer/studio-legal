@@ -8,7 +8,7 @@
      sin llamadas de red (default-src 'none': ni conexiones, ni fuentes, ni audio) y sin llaves. Las imágenes son del mismo sitio.
      El título «Ahorita regreso» es una IMAGEN: la letra DK Attaboy es de licencia y su archivo no se sube al sitio público.
      Ver docs/AHORITA-REGRESO-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-fRkBzIEFMRVgEDkwbqYjnteIYdfNXFBR9JzsDewtLvk='; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VGHjIL/2k4KdyGJSxBb1mXFhttT+nXVRTs2ij4yMo98='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Ahorita regreso · Melies</title>
@@ -86,10 +86,23 @@
   body.quieto #escena *, body.quieto #escena { animation: none !important; }
   body.quieto .frase:nth-child(1) { opacity: 1; }
   body.quieto .sube { opacity: 0.5; transform: translateY(var(--reposo, -200px)); }
+
+  /* Con video (18-nov-2026): el video de fondo cubre todo y la tarjeta de cristal baja a la esquina de abajo a la izquierda (arriba a la izquierda vive el chat). ?video=0 lo apaga. */
+  #fondo { position: absolute; left: 0; top: 0; width: 960px; height: 540px; object-fit: cover; display: none; background: #120C0E; }
+  body.convideo #fondo { display: block; }
+  body.convideo .aurora, body.convideo .velo, body.convideo #burbujitas, body.convideo .salta { display: none; }
+  body.convideo .firma { left: auto; right: 26px; bottom: 14px; text-align: right; text-shadow: 0 1px 6px rgba(0,0,0,0.6); color: rgba(255,255,255,0.8); }
+  body.convideo .tarjeta { left: 28px; top: auto; bottom: 26px; width: 540px; }
+  body.convideo .tarjeta { height: 170px; }
+  body.convideo .encabezado { left: 28px; top: 16px; }
+  body.convideo .titulo { left: 28px; top: 46px; width: 373.9px; height: 47.6px; }
+  body.convideo .frases { left: 28px; right: 28px; top: 108px; height: 28px; font-size: 21px; }
+  body.convideo .barra { left: 28px; right: 28px; bottom: 14px; }
 </style>
 </head>
 <body>
 <div id="escena">
+  <video id="fondo" playsinline preload="auto"></video>
   <!-- auroras: la naranja queda detrás del personaje para que su ropa negra se distinga -->
   <div class="aurora a1"></div>
   <div class="aurora a2"></div>
@@ -168,6 +181,24 @@
     contenedor.appendChild(b);
   }
 
+
+  // Los videos de «Ahorita regreso» (con sonido: efectos; la música la pone OBS) van uno tras otro, en bucle. ?video=0 los apaga; ?sonido=0 los deja mudos (para probar en un navegador).
+  var LISTA = ['principal.mp4', 'dormido.mp4', 'ave-y-papa.mp4', 'cafe.mp4'];
+  var fondo = document.getElementById('fondo');
+  if (parametros.get('video') !== '0') {
+    document.body.classList.add('convideo');
+    var siguiente = Math.max(0, Math.min(LISTA.length - 1, parseInt(parametros.get('inicio') || '0', 10) || 0));
+    var mudo = parametros.get('sonido') === '0';
+    var reproducir = function () {
+      fondo.src = LISTA[siguiente % LISTA.length];
+      siguiente += 1;
+      fondo.muted = mudo;
+      var rep = fondo.play();
+      if (rep && rep.catch) rep.catch(function () { mudo = true; fondo.muted = true; fondo.play(); });
+    };
+    fondo.addEventListener('ended', reproducir);
+    reproducir();
+  }
   if (!op.movimiento) document.body.classList.add('quieto');
 
   // El tamaño: el diseño es de 960 × 540; en 1920 × 1080 se escala 2×, y si el lienzo no es 16:9 se centra.
