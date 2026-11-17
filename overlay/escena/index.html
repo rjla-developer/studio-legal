@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Escenas «Cristal» de OBS (17-nov-2026): una sola página, tres escenas por la dirección (?escena=camara-y-chat | empezando | ya-me-voy). Misma base que overlay/brb: sin sonido, sin red, sin llaves; el título es texto del sistema (la letra DK Attaboy es de licencia y no se publica). Ver docs/ESCENAS-CRISTAL-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-X3tEpn29+L2mQBGyFvAxVF9QIobQrObqj6xonG8Ac6A='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LXzB8j6DtAhGXHHUPy8ny8RIhQ4o78ITg76fLHEEmCA='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Escenas Cristal · Melies</title>
@@ -107,10 +107,17 @@
   body.convideo .tarjeta { left: 28px; top: auto; bottom: 26px; width: 540px; }
   body.convideo .tarjeta { height: 150px; }
   body.convideo .encabezado { left: 28px; top: 14px; }
-  body.convideo .titulo2 { left: 28px; top: 40px; right: 28px; font-size: 40px; line-height: 48px; }
+  body.convideo .mensaje { top: 94px; }
+  body.convideo .titulo2 { left: 28px; top: 38px; right: 28px; font-size: 40px; line-height: 48px; }
   body.convideo .frases { left: 28px; right: 28px; top: 100px; height: 28px; font-size: 20px; }
   body.convideo .barra { left: 28px; right: 28px; bottom: 12px; }
   body.convideo .cuenta { top: 12px; right: 20px; font-size: 18px; }
+
+  /* El mensaje de cada escena (personalizable por la dirección: ?mensaje=… en escena; ?m1=…&m2=…&m3=…&m4=… en «Ahorita regreso», uno por video en su orden). */
+  .mensaje { position: absolute; left: 28px; right: 28px; top: 98px; font-size: 21px; line-height: 26px; font-weight: 600; color: rgba(255,255,255,0.96); text-shadow: 0 1px 6px rgba(0,0,0,0.55); display: none; }
+  body.convideo .mensaje { display: block; }
+  body.convideo .frases { display: none; }
+  body.convideo .tarjeta { height: 200px; }
 </style>
 </head>
 <body>
@@ -134,6 +141,7 @@
       <div class="frase">Mientras tanto, platica en el chat</div>
     </div>
     <div class="cuenta" id="cuenta"></div>
+    <div class="mensaje" id="mensaje"></div>
     <div class="barra"><div class="brillo"></div></div>
   </div>
 
@@ -234,6 +242,9 @@
     fondo.loop = true;
     fondo.src = VIDEOS[nombre];
     fondo.muted = parametros.get('sonido') === '0';
+    var MENSAJES = { 'empezando': 'Espérenme que me estoy echando unas quecas.', 'ya-me-voy': 'Hasta la vista carnal, cuídate mucho y si te sientes mal pide ayuda. Yo te escucharé, deberitas!' };
+    var mensaje = parametros.get('mensaje');
+    document.getElementById('mensaje').textContent = mensaje === null ? MENSAJES[nombre] : mensaje;
     var rep = fondo.play();
     if (rep && rep.catch) rep.catch(function () { fondo.muted = true; fondo.play(); });
   }

@@ -8,7 +8,7 @@
      sin llamadas de red (default-src 'none': ni conexiones, ni fuentes, ni audio) y sin llaves. Las imágenes son del mismo sitio.
      El título «Ahorita regreso» es una IMAGEN: la letra DK Attaboy es de licencia y su archivo no se sube al sitio público.
      Ver docs/AHORITA-REGRESO-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-VGHjIL/2k4KdyGJSxBb1mXFhttT+nXVRTs2ij4yMo98='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BvXQrk39fDwKBpQ7P83U3NPtYGfqG2X88BufoAg71oE='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Ahorita regreso · Melies</title>
@@ -98,6 +98,12 @@
   body.convideo .titulo { left: 28px; top: 46px; width: 373.9px; height: 47.6px; }
   body.convideo .frases { left: 28px; right: 28px; top: 108px; height: 28px; font-size: 21px; }
   body.convideo .barra { left: 28px; right: 28px; bottom: 14px; }
+
+  /* El mensaje de cada escena (personalizable por la dirección: ?mensaje=… en escena; ?m1=…&m2=…&m3=…&m4=… en «Ahorita regreso», uno por video en su orden). */
+  .mensaje { position: absolute; left: 28px; right: 28px; top: 98px; font-size: 21px; line-height: 26px; font-weight: 600; color: rgba(255,255,255,0.96); text-shadow: 0 1px 6px rgba(0,0,0,0.55); display: none; }
+  body.convideo .mensaje { display: block; }
+  body.convideo .frases { display: none; }
+  body.convideo .tarjeta { height: 200px; }
 </style>
 </head>
 <body>
@@ -120,6 +126,7 @@
       <div class="frase">Ya casi regreso</div>
       <div class="frase">Mientras tanto, platica en el chat</div>
     </div>
+    <div class="mensaje" id="mensaje"></div>
     <div class="barra"><div class="brillo"></div></div>
   </div>
 
@@ -189,8 +196,12 @@
     document.body.classList.add('convideo');
     var siguiente = Math.max(0, Math.min(LISTA.length - 1, parseInt(parametros.get('inicio') || '0', 10) || 0));
     var mudo = parametros.get('sonido') === '0';
+    var MENSAJES = ['Aguántenme!!! Que esta vez no llego...', 'Me echo una pestaña y regresamos, sino regreso... la pestaña fue más fuerte carnal', 'Perenme que el hambre está volando!', 'Gracias, me la pasé muy bien, carnales...'];
     var reproducir = function () {
-      fondo.src = LISTA[siguiente % LISTA.length];
+      var k = siguiente % LISTA.length;
+      var propio = parametros.get('m' + (k + 1));
+      document.getElementById('mensaje').textContent = propio === null ? MENSAJES[k] : propio;
+      fondo.src = LISTA[k];
       siguiente += 1;
       fondo.muted = mudo;
       var rep = fondo.play();
