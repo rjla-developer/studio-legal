@@ -8,7 +8,7 @@
      sin llamadas de red (default-src 'none': ni conexiones, ni fuentes, ni audio) y sin llaves. Las imágenes son del mismo sitio.
      El título «Ahorita regreso» es una IMAGEN: la letra DK Attaboy es de licencia y su archivo no se sube al sitio público.
      Ver docs/AHORITA-REGRESO-EN-OBS.md. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BvXQrk39fDwKBpQ7P83U3NPtYGfqG2X88BufoAg71oE='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BpruFAQhFKF0R/5ddKdKHi8pcR4R020IlHf+OllMR1I='; style-src 'unsafe-inline'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Ahorita regreso · Melies</title>
@@ -104,6 +104,10 @@
   body.convideo .mensaje { display: block; }
   body.convideo .frases { display: none; }
   body.convideo .tarjeta { height: 200px; }
+  .titulo2 { position: absolute; left: 28px; top: 38px; right: 28px; font-size: 38px; line-height: 48px; font-weight: 800; letter-spacing: -0.01em; color: #F7EEE6; text-shadow: 0 3px 10px rgba(0,0,0,0.45); display: none; }
+  body.convideo .titulo2 { display: block; }
+  body.convideo .titulo { display: none; }
+  body.convideo .mensaje { top: 94px; }
 </style>
 </head>
 <body>
@@ -121,6 +125,7 @@
   <div class="tarjeta">
     <div class="encabezado"><div class="punto"></div><div class="enpausa">EN PAUSA</div></div>
     <img class="titulo" src="titulo-ahorita-regreso.png" alt="Ahorita regreso">
+    <div class="titulo2" id="titulo"></div>
     <div class="frases" id="frases">
       <div class="frase">Fui por un café</div>
       <div class="frase">Ya casi regreso</div>
@@ -196,11 +201,15 @@
     document.body.classList.add('convideo');
     var siguiente = Math.max(0, Math.min(LISTA.length - 1, parseInt(parametros.get('inicio') || '0', 10) || 0));
     var mudo = parametros.get('sonido') === '0';
-    var MENSAJES = ['Aguántenme!!! Que esta vez no llego...', 'Me echo una pestaña y regresamos, sino regreso... la pestaña fue más fuerte carnal', 'Perenme que el hambre está volando!', 'Gracias, me la pasé muy bien, carnales...'];
+    // Título y mensaje de cada video: los del dueño (el título de «Ahorita regreso» ya no sale con video). Se cambian con ?t1=…&m1=… (uno por video, en este orden).
+    var TITULOS = ['¡Aguántenme!!!', 'Me echo una pestaña', '¡Perenme!', 'Gracias'];
+    var MENSAJES = ['Que esta vez no llego...', 'y regresamos, si no regreso... la pestaña fue más fuerte, carnal.', 'Que el hambre está volando!', 'Me la pasé muy bien, carnales...'];
     var reproducir = function () {
       var k = siguiente % LISTA.length;
       var propio = parametros.get('m' + (k + 1));
       document.getElementById('mensaje').textContent = propio === null ? MENSAJES[k] : propio;
+      var titulo = parametros.get('t' + (k + 1));
+      document.getElementById('titulo').textContent = titulo === null ? TITULOS[k] : titulo;
       fondo.src = LISTA[k];
       siguiente += 1;
       fondo.muted = mudo;
